@@ -1,0 +1,21 @@
+*~
+*.bak
+*.pyc
+*.orig
+*.blend1
+*.blend2
+
+.DS_Store
+.AppleDouble
+
+# build files
+
+*.o
+*.a
+*.la
+*.lai
+*.so*
+dc1394_sa
+readout
+standalone
+filename
