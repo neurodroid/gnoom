@@ -1,0 +1,1 @@
+SUBSYSTEM=="comedi", MODE="0660", GROUP="vr-users"

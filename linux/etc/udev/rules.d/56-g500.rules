@@ -1,0 +1,1 @@
+SUBSYSTEM=="usb", ATTR{idVendor}=="046d", ATTR{idProduct}=="c068", RUN+="/usr/local/bin/findxinput-g500.sh"

@@ -1,0 +1,1 @@
+KERNEL=="raw1394", MODE="0660", GROUP="vr-users"
