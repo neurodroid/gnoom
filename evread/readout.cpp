@@ -29,6 +29,7 @@
 #include <sstream>
 #include <algorithm>
 #include <fcntl.h>
+#include <unistd.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <linux/input.h>
