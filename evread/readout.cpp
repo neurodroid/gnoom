@@ -134,6 +134,10 @@ int main (int argc, char **argv)
     devname << "/dev/input/event" << index;
     std::cout << "USBREAD: opening device " << devname.str() << "... " << std::flush;
     int fd_dev = open(devname.str().c_str(), O_RDONLY);
+    if (fd_dev == -1) {
+        perror("cannot open output file\n");
+        exit(1);
+    }
     std::cout << "success" << std::endl;
     
     std::vector<int> readout(2);
