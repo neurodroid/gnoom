@@ -102,16 +102,16 @@ class SerialPort:
     termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
 
   def read_until(self, until):
-    buf = ""
+    buf = b""
     done = False
     while not done:
       try:
         n = os.read(self.fd, 1)
       except os.error:
-        time.sleep(0.01)
+        time.sleep(0.0001)
         continue
-      if n == '':
-        time.sleep(0.01)
+      if n == b'':
+        time.sleep(0.0001)
         continue
       buf = buf + n
       if n == until:
