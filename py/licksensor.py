@@ -93,10 +93,14 @@ if __name__=="__main__":
             arduino.write('w'.encode('latin1'))
             lickcounter = arduino.read_until(b'\n')
             int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.int8)
+            if int_lickcounter.shape[0] == 0:
+                int_lickcounter = [0]
         else:
-            int_lickcounter = 0
-
-        socklick.send(np.array([time.time(), int_lickcounter], dtype=np.float64).tostring()) 
+            int_lickcounter = [0]
+        try:
+            socklick.send(np.array([time.time(), int_lickcounter[0]], dtype=np.float64).tostring()) 
+        except BlockingIOError:
+            pass
 
     socklick.close()
     sys.stdout.write("LICKSENSOR: Closing\n")
