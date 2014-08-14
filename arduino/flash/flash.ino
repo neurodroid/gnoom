@@ -12,6 +12,12 @@
  * 'u' broadcast up signal
  * 'd' broadcast down signal
  * 'w' wipe lick counter
+ * '5' open olfactometer valve
+ * '6' close olfactometer valve
+ * '7' open olfacto2meter valve
+ * '8' close olfacto2meter valve
+ * '9' open olfacto3meter valve
+ * '0' close olfacto3meter valve
  */
 
 extern "C" void __cxa_pure_virtual() {}
@@ -19,9 +25,13 @@ extern "C" void __cxa_pure_virtual() {}
 /*
  * Data and clock pin definitions
  */
-static const int lickpin = 13;
-static const int c1pin = 2;
-static const int c2pin = 4;
+
+static const int c1pin = 11; /* Airpuff 1 */
+static const int c2pin = 2; /* Airpuff 2 */
+static const int lickpin = 3;
+static const int olf1pin = 6;
+static const int olf2pin = 8;
+static const int olf3pin = 10;
 static const int bcpin = 12;
 /* static const int epin = 12; */
 static const int BAUDRATE = 19200;
@@ -42,6 +52,9 @@ void setup()   {
   pinMode(c1pin, OUTPUT);     
   pinMode(c2pin, OUTPUT);
   pinMode(bcpin, OUTPUT);
+  pinMode(olf1pin, OUTPUT);
+  pinMode(olf2pin, OUTPUT);
+  pinMode(olf3pin, OUTPUT);
 
   pinMode(lickpin, INPUT);
   Serial.write('\n');
@@ -96,6 +109,24 @@ void loop()
         lickcounter = 0;
         break;
       }
+      case '5':
+        digitalWrite(olf1pin, HIGH);
+        break;
+      case '6':
+        digitalWrite(olf1pin, LOW);
+        break;
+      case '7':
+        digitalWrite(olf2pin, HIGH);
+        break;
+      case '8':
+        digitalWrite(olf2pin, LOW);
+        break;
+      case '9':
+        digitalWrite(olf3pin, HIGH);
+        break;
+      case '0':
+        digitalWrite(olf3pin, LOW);
+        break;
       default:
         break;
     }
