@@ -78,7 +78,7 @@ if __name__=="__main__":
             if connected:
                 t_disconnect = time.time()
             connected = False
-            if time.time()-t_disconnect > 0.5:
+            if time.time()-t_disconnect > 1.0:
                 break
         else:
             connected=True
@@ -90,10 +90,14 @@ if __name__=="__main__":
             break
             
         if arduino is not None:
-            arduino.write('w'.encode('latin1'))
-            lickcounter = arduino.read_until(b'\n')
-            int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.int8)
-            if int_lickcounter.shape[0] == 0:
+            try:
+                arduino.write('w'.encode('latin1'))
+                lickcounter = arduino.read_until(b'\n')
+                int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.int8)
+                if int_lickcounter.shape[0] == 0:
+                    int_lickcounter = [0]
+            except BlockingIOError:
+                sys.stderr.write("LICKSENSOR: Couldn't write to arduino\n")
                 int_lickcounter = [0]
         else:
             int_lickcounter = [0]
