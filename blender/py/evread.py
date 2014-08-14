@@ -25,7 +25,16 @@ try:
 except:
     init = 1
 
-import numpy as np
+import sys
+try:
+    import numpy as np
+except ImportError:
+    # Add system Python path (required for Blender from ubuntu repositories):
+    sys.path.append("/usr/lib/python%d.%d/site-packages" % (
+            sys.version_info.major, sys.version_info.minor))
+    sys.path.append("/usr/lib/python%d.%d/dist-packages" % (
+            sys.version_info.major, sys.version_info.minor))
+    import numpy as np
 
 import xinput
 import gnoomutils as gu
