@@ -21,59 +21,64 @@ import sys
 sys.stdout.write("Opening serial port...")
 sys.stdout.flush()
 ser = serial.Serial('/dev/ttyS0', 19200, timeout=1)
-# ser = serial.Serial('/dev/ttyUSB0', 19200, timeout=1)
+# ser = serial.Serial('/dev/ttyUSB2', 19200, bytesize=8, parity='N', stopbits=1, timeout=None, xonxoff=0, rtscts=0)
 sys.stdout.write(" done\n")
+
+def write_bytes(string):
+    ser.write(bytearray(string, 'ascii'))
 
 def init():
     sys.stdout.write( "Resetting pump..." )
     sys.stdout.flush()
-    ser.write(b"*RESET\r")
+    write_bytes("*RESET\r")
     sys.stdout.write( " done\n" )
     sys.stdout.write( "Setting syringe diameter..." )
     sys.stdout.flush()
-    ser.write(b"DIA 14.43\r") # B-D 10 ml
+    write_bytes("DIA 14.43\r") # B-D 10 ml
     ser.read()
     sys.stdout.write( " done\n" )
     sys.stdout.write( "Setting direction..." )
     sys.stdout.flush()
-    ser.write(b"DIR INF\r")
+    write_bytes("DIR INF\r")
     ser.read()
     sys.stdout.write( " done\n" )
     sys.stdout.write( "Setting alarm..." )
     sys.stdout.flush()
-    ser.write(b"AL 0\r")
+    write_bytes("AL 0\r")
     ser.read()
     sys.stdout.write( " done\n" )
-    set_rate(99)
+    set_rate(09.00)
     # set_volume(10) # changed to 20 on 2012-01-17, CSH
-    set_volume(20) 
+    set_volume(20.0) 
 
 def set_volume(vol):
     svol = "%05.2f" % vol
     sys.stdout.write( "Setting volume to %s ul..." % svol )
     sys.stdout.flush()
-    ser.write(b"VOL UL\r")
+    write_bytes("VOL UL\r")
     ser.read()
-    ser.write(b"VOL %s\r" % svol)
+    write_bytes("VOL %s\r" % svol)
+    ser.read()
     sys.stdout.write( " done\n" )
 
 def set_rate(rate):
     srate = "%05.2f" % rate
     sys.stdout.write( "Setting rate to %s..." % srate ) 
     sys.stdout.flush()
-    ser.write(b"RAT %s\r" % srate)
+    write_bytes("RAT %s MM\r" % srate)
     ser.read()
     sys.stdout.write( " done\n" )
 
 def start_pump():
-    ser.write(b"RUN\r")
-    ser.write(b"BUZ 1 2\r")
+    write_bytes("RUN\r")
     ser.read()
+    # write_bytes("BUZ 1 2\r")
+    # ser.read()
 
 def stop_pump():
-    ser.write(b"STP\r")
+    write_bytes("STP\r")
     ser.read()
-    ser.write(b"STP\r")
+    write_bytes("STP\r")
     ser.read()
 
 if __name__=="__main__":
