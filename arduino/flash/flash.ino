@@ -20,7 +20,7 @@
  * '0' close olfacto3meter valve
  */
 
-extern "C" void __cxa_pure_virtual() {}
+/* extern "C" void __cxa_pure_virtual() {} */
 
 /*
  * Data and clock pin definitions
