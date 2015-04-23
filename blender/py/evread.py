@@ -53,32 +53,18 @@ if init:
 
     blenderpath = GameLogic.expandPath('//')
 
-    if len(mice):
+    for mouseno in range(0, len(mice), 2):
         s1, conn1, addr1, p1 = \
-            gu.spawn_process("\0mouse0socket", 
-                          ['%s/evread/readout' % blenderpath, '%d' % mice[0].evno, '0'])
-        s2, conn2, addr2, p2 = \
-            gu.spawn_process("\0mouse1socket", 
-                          ['%s/evread/readout' % blenderpath, '%d' % mice[2].evno, '1'])
-
+            gu.spawn_process("\0mouse%dsocket" % int(mouseno/2), 
+                          ['%s/evread/readout' % blenderpath, '%d' % mice[mouseno].evno, '%d' % (mouseno/2)])
+        
         conn1.send(b'start')
-        conn2.send(b'start')
 
         gu.recv_ready(conn1)
-        gu.recv_ready(conn2)
 
         conn1.setblocking(0)
-        conn2.setblocking(0)
 
-        GameLogic.Object['m1conn'] = conn1
-        GameLogic.Object['m2conn'] = conn2
-
-    else:
-        GameLogic.Object['m1conn'] = None
-        GameLogic.Object['m2conn'] = None
-
-conn1 = GameLogic.Object['m1conn']
-conn2 = GameLogic.Object['m2conn']
+        GameLogic.Object['m%dconn' % (int(mouseno/2) + 1)] = conn1
 
 # define main program
 def main():
@@ -87,15 +73,22 @@ def main():
 
     # get controller
     controller = GameLogic.getCurrentController()
-    gu.keep_conn([conn1, conn2]) 
 
-    if conn1 is not None:
-        # get mouse movement
-        t1, dt1, x1, y1 = gu.read32(conn1)
-        t2, dt2, x2, y2 = gu.read32(conn2)
+    nmouse = 1
+    mkey = 'm%dconn' % (nmouse) 
+    if mkey in GameLogic.Object.keys():
+        t1, dt1, x1, y1 = gu.read32(GameLogic.Object[mkey])
+        gu.keep_conn([GameLogic.Object[mkey]])
     else:
-        t1, dt1, x1, y1 = np.array([0,]), np.array([0,]), np.array([0,]), np.array([0,])
-        t2, dt2, x2, y2 = np.array([0,]), np.array([0,]), np.array([0,]), np.array([0,])
+        t1, dt1, x1, y1 = 0, 0, np.array([0,]), np.array([0,])
+    nmouse = 2
+    mkey = 'm%dconn' % (nmouse) 
+    if mkey in GameLogic.Object.keys():
+        t2, dt2, x2, y2 = gu.read32(GameLogic.Object[mkey])
+        gu.keep_conn([GameLogic.Object[mkey]])
+    else:
+        t2, dt2, x2, y2 = 0, 0, np.array([0,]), np.array([0,])
+
     
     # move according to ball readout:
     movement(controller, (x1, y1, x2, y2, t1, t2, dt1, dt2))
