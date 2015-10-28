@@ -1,5 +1,5 @@
 *~
-*.bak
+*.bak*
 *.pyc
 *.orig
 *.blend1
@@ -15,6 +15,7 @@
 *.la
 *.lai
 *.so*
+dc1394
 dc1394_sa
 readout
 standalone
