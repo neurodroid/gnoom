@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <ctime>
 #include <sys/socket.h>
@@ -46,11 +47,9 @@ double t2d(timespec time1) {
     return time1.tv_sec + time1.tv_nsec / BILLION;
 }
 
-#include <pthread.h>
+dc1394cam gCamera;
 
-pthread_mutex_t save_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t acq_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t camera_mutex = PTHREAD_MUTEX_INITIALIZER;
+void cleanup_and_exit(dc1394cam& camera);
 
 struct saveframe {
     saveframe(const std::vector<unsigned char>& d, int w, int h, double ts, const std::string& fn="") :
@@ -62,15 +61,73 @@ struct saveframe {
     std::string fname;
 };
 
-std::queue<saveframe> save_frame_buffer;
 std::queue<saveframe> acq_frame_buffer;
+pthread_mutex_t acq_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t camera_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* thread_acq_image(void*) {
+    timespec time_save0, time_save1, t_sleep, t_rem;
+    t_sleep.tv_sec = 0;
+    t_sleep.tv_nsec = 10;
+
+    dc1394video_frame_t *frame;
+
+    for (;;) {
+        /* wait for image */
+        pthread_mutex_lock( &camera_mutex );
+        int ret = gCamera.wait_for_image(1);
+        pthread_mutex_unlock( &camera_mutex );
+        if (ret) {
+            pthread_mutex_lock( &camera_mutex );
+            dc1394error_t err = dc1394_capture_dequeue(gCamera.cam(), DC1394_CAPTURE_POLICY_POLL, &frame);
+            /* frame->timestamp appears to be broken, so we have to resort to clock_gettime */
+            timespec fts;
+            clock_gettime( CLOCK_REALTIME, &fts );
+            double ft = t2d(fts);
+            pthread_mutex_unlock( &camera_mutex );
+            if (err) {
+                cleanup_and_exit(gCamera);
+                std::cerr << dc1394_error_get_string(err) << "\nCould not capture frame" << std::endl;
+            }
+
+            // return frame to ring buffer:
+            // if (frame->image) {
+                pthread_mutex_lock( &camera_mutex );
+                err = dc1394_capture_enqueue(gCamera.cam(), frame);
+                pthread_mutex_unlock( &camera_mutex );
+                if (err) {
+                    std::cerr << dc1394_error_get_string(err) << "\nCould not return frame to ring buffer" << std::endl;
+                    cleanup_and_exit(gCamera);
+                }
+                // }
+            int width = frame->size[0];
+            int height = frame->size[1];
+            pthread_mutex_lock( &acq_buffer_mutex );
+            acq_frame_buffer.push(saveframe(std::vector<unsigned char>(&(frame->image)[0],
+                                                                       &(frame->image)[width*height]),
+                                            width, height, ft)); // (double)frame->timestamp));
+            pthread_mutex_unlock( &acq_buffer_mutex );
+        } else {
+            nanosleep(&t_sleep, &t_rem);
+        }
+    }
+}
+
+#define LICKOMETER
+
+#ifdef LICKOMETER
+const static int LICK_FRAME_THRESHOLD = 35;
+const static int LICK_SUM_THRESHOLD = 700000000;
+#else
+
+#include <pthread.h>
+
+pthread_mutex_t save_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+std::queue<saveframe> save_frame_buffer;
 std::vector<png_bytep> pngdata(480);
-dc1394cam gCamera;
 
 void* thread_save_image(void*);
-void* thread_acq_image(void*);
-
-void cleanup_and_exit(dc1394cam& camera);
 
 void write_jpeg(const saveframe& sframe) {
     /* This struct contains the JPEG compression parameters and pointers to
@@ -351,54 +408,7 @@ void* thread_save_image(void*) {
         }
     }
 }
-
-void* thread_acq_image(void*) {
-    timespec time_save0, time_save1, t_sleep, t_rem;
-    t_sleep.tv_sec = 0;
-    t_sleep.tv_nsec = 10;
-
-    dc1394video_frame_t *frame;
-
-    for (;;) {
-        /* wait for image */
-        pthread_mutex_lock( &camera_mutex );
-        int ret = gCamera.wait_for_image(1);
-        pthread_mutex_unlock( &camera_mutex );
-        if (ret) {
-            pthread_mutex_lock( &camera_mutex );
-            dc1394error_t err = dc1394_capture_dequeue(gCamera.cam(), DC1394_CAPTURE_POLICY_POLL, &frame);
-            /* frame->timestamp appears to be broken, so we have to resort to clock_gettime */
-            timespec fts;
-            clock_gettime( CLOCK_REALTIME, &fts );
-            double ft = t2d(fts);
-            pthread_mutex_unlock( &camera_mutex );
-            if (err) {
-                cleanup_and_exit(gCamera);
-                std::cerr << dc1394_error_get_string(err) << "\nCould not capture frame" << std::endl;
-            }
-
-            // return frame to ring buffer:
-            // if (frame->image) {
-                pthread_mutex_lock( &camera_mutex );
-                err = dc1394_capture_enqueue(gCamera.cam(), frame);
-                pthread_mutex_unlock( &camera_mutex );
-                if (err) {
-                    std::cerr << dc1394_error_get_string(err) << "\nCould not return frame to ring buffer" << std::endl;
-                    cleanup_and_exit(gCamera);
-                }
-                // }
-            int width = frame->size[0];
-            int height = frame->size[1];
-            pthread_mutex_lock( &acq_buffer_mutex );
-            acq_frame_buffer.push(saveframe(std::vector<unsigned char>(&(frame->image)[0],
-                                                                       &(frame->image)[width*height]),
-                                            width, height, ft)); // (double)frame->timestamp));
-            pthread_mutex_unlock( &acq_buffer_mutex );
-        } else {
-            nanosleep(&t_sleep, &t_rem);
-        }
-    }
-}
+#endif
 
 void write_send(int socket, double timestamp, const std::string& fname, int& ncount) {
     timespec time1;
@@ -428,6 +438,7 @@ int get_image(cv::Mat& im, const cv::Mat& mapping, bool rotate, int socket,
         int height = acq_frame_buffer.front().height;
         double timestamp = acq_frame_buffer.front().timestamp;
 
+#ifndef LICKOMETER
         if (fname != "") {
             std::ostringstream jpgname;
             jpgname << fname << std::setfill('0') << std::setw(7) << ncount << ".jpg";
@@ -436,6 +447,7 @@ int get_image(cv::Mat& im, const cv::Mat& mapping, bool rotate, int socket,
                                              width, height, timestamp, jpgname.str()));
             pthread_mutex_unlock( &save_buffer_mutex );
         }
+#endif
 
         pthread_mutex_lock( &acq_buffer_mutex );
         im = cv::Mat(cv::Size(width, height), CV_8UC1, &acq_frame_buffer.front().data[0]).clone();
@@ -453,6 +465,30 @@ int get_image(cv::Mat& im, const cv::Mat& mapping, bool rotate, int socket,
     }
     return nframes;
 }
+
+/* turn color to gray */
+cv::Mat bgr2gray(const cv::Mat& im) {
+    cv::Mat gray;
+    cv::cvtColor(im, gray, CV_BGR2GRAY);
+    return gray;
+}
+
+/* apply gaussian blur */
+cv::Mat gaussian_blur(const cv::Mat& im, const cv::Size ksize=cvSize(21,21), const double sigmaX=0) {
+    cv::Mat blur; 
+    cv::GaussianBlur(im, blur, ksize, sigmaX);
+    return blur;
+}
+
+
+/* threshold frame */
+cv::Mat thresholding(const cv::Mat& im, const int threshold_value=177, 
+                     const int maxval=255, const int type=CV_THRESH_BINARY) {
+    cv::Mat thresh;
+    cv::threshold(im, thresh, threshold_value, maxval, type);
+    return thresh;
+}
+
 
 int main (int argc, char **argv)
 {
@@ -520,9 +556,13 @@ int main (int argc, char **argv)
     }
     SDL_Event event;
 #endif
-    
+
+#ifndef LICKOMETER    
     pthread_t save_thread, acq_thread;
     pthread_create( &save_thread, NULL, &thread_save_image, NULL);
+#endif
+
+    pthread_t save_thread, acq_thread;
     pthread_create( &acq_thread, NULL, &thread_acq_image, NULL);
 
     timespec t_sleep, t_rem;
@@ -624,6 +664,9 @@ int main (int argc, char **argv)
 
     int ncount = 0;
     cv::Mat im(cv::Size(width, height), CV_8UC1);
+    cv::Mat thresh = cv::Mat::ones(cv::Size(width, height), CV_8UC1);
+    cv::Mat prevs(cv::Size(width, height), CV_8UC1);
+    cv::Mat gray(cv::Size(width, height), CV_8UC1);
     
     // wait for image:
     int nframes = get_image(im, mapping, false, -1, "", ncount);
@@ -637,7 +680,7 @@ int main (int argc, char **argv)
 #ifdef STANDALONE
 	if (nwait > 1000) {
 #else
-	if (nwait > 10000) {
+	if (nwait > 100000) {
 #endif
             std::cout << "Time out, stopping now\n";
             cleanup_and_exit(gCamera);
@@ -680,8 +723,12 @@ int main (int argc, char **argv)
 #endif
 
     std::string fn = "";
-
+#ifdef LICKOMETER
+    std::string fn_lick = "";
+    FILE* fp_lick = NULL;
+#endif
     int key = 0;
+    int nloop = 0;
     while (true) {
         clock_gettime( CLOCK_REALTIME, &time1);
 #ifndef STANDALONE
@@ -728,6 +775,13 @@ int main (int argc, char **argv)
         // Stop recording
         if (datastr.find("stop") != std::string::npos && fn != "") {
             fn = "";
+#ifdef LICKOMETER
+	    fn_lick = "";
+	    if (fp_lick) {
+                fclose(fp_lick);
+		fp_lick = NULL;
+            }
+#endif
             std::cout << "DC1394: Stopping video" << std::endl;
             connected = true;
             ncount = 0;
@@ -739,6 +793,11 @@ int main (int argc, char **argv)
             std::size_t endpos = datastr.find("end") - datastr.find("begin") - 5; 
             fn = datastr.substr(startpos, endpos);
             fn = std::string(trunk) + "data/" + fn;
+#ifdef LICKOMETER
+	    fn_lick = fn + "_lick";
+	    fp_lick = fopen(fn_lick.c_str(), "wb");
+            std::cout << "DC1394: Recording lick detection, writing to " << fn_lick << std::endl;
+#else
             boost::filesystem::path path(fn);
             boost::filesystem::path writepath(path);
 
@@ -757,6 +816,7 @@ int main (int argc, char **argv)
             std::cout << "DC1394: Starting video, writing to " << fn << std::endl;
             connected = true;
             ncount = 0;
+#endif
         }
 #endif // #nstandalone
 
@@ -816,7 +876,30 @@ int main (int argc, char **argv)
             }
         }
 #endif // not SDL
-        
+
+#ifdef LICKOMETER        
+	/* IS THIS ALL YOU NEED THEN?
+	   Lick detection */
+	/* Not required because the captured image is already gray
+	   cv::Mat gray = bgr2gray(im); */
+	gray = thresholding(im, LICK_FRAME_THRESHOLD);
+
+        if (nloop != 0) {
+	    cv::absdiff(prevs, gray, thresh);
+	    double pixel_sum_thresh = cv::sum(thresh)[0];
+	    double pixel_sum_gray = cv::sum(gray)[0];
+	    if (pixel_sum_thresh > LICK_SUM_THRESHOLD) {
+	      std::cout << "DC1394: Lick" << std::endl;
+	    }
+	    if (fp_lick != NULL) {
+                fwrite(&pixel_sum_thresh, sizeof(pixel_sum_thresh), 1, fp_lick);
+	        fwrite(&pixel_sum_gray, sizeof(pixel_sum_gray), 1, fp_lick);
+	    }
+	}
+
+	prevs = gray.clone();
+	nloop++;
+#endif
 #ifdef STANDALONE
         if (key == 1048689 || key == 113 /*q*/) {
             std::cout << "DC1394: Mean frame rate was " << nframes/total_dur << " fps" << std::endl;
