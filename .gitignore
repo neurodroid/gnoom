@@ -15,8 +15,8 @@
 *.la
 *.lai
 *.so*
-dc1394
-dc1394_sa
+./dc1394/dc1394
+./dc1394/dc1394_sa
 readout
 standalone
 filename
