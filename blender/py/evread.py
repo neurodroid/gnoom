@@ -96,6 +96,10 @@ def main():
 # define useMouseLook
 def movement(controller, move):
 
+    mouse_id_y_translate = 1
+    mouse_id_z_rotate1 = 0
+    mouse_id_z_rotate2 = 2
+   
     # Note that x is mirrored if the dome projection is used.
     xtranslate = 0 #
     ytranslate = 0
@@ -105,32 +109,30 @@ def movement(controller, move):
     # Simple example how the mice could be read out
 
     # y axis front mouse
-    if len(move[3]):
+    if len(move[mouse_id_y_translate]):
         # pass
-        ytranslate = float(move[3].sum()) * gain
+        ytranslate = float(move[mouse_id_y_translate].sum()) * gain
     # x axis front mouse / side mouse
-    if len(move[0]) and len(move[2]):
+    if len(move[mouse_id_z_rotate1]):
         # pass
-        zrotate = float(move[0].sum()+move[2].sum())/2.0 * gain
+        zrotate = float(move[mouse_id_z_rotate1].sum()) * gain
 
     # y axis side mouse
-    if len(move[1]):
-        zrotate += float((move[1].sum()))*gain
-        
-    # Get the actuators
-    act_xtranslate = controller.actuators["xtranslate"]
-    act_ytranslate = controller.actuators["ytranslate"]
-    act_zrotate    = controller.actuators["zrotate"]
+    if len(move[mouse_id_z_rotate2]):
+        zrotate += float((move[mouse_id_z_rotate2].sum()))*gain
+    
+    # get object that controller is attached to
+    camera = controller.owner
+    
+    # set amount to move
+    translation = [ xtranslate, ytranslate, 0]
+    rotation = [0, 0, zrotate]
+    
+    # use local axis
+    local = True
 
-    act_ytranslate.dLoc = [xtranslate, ytranslate, 0.0]
-    act_ytranslate.useLocalDLoc = True
-
-    act_zrotate.dRot = [0.0, 0.0, zrotate]
-    act_zrotate.useLocalDRot = False
-
-    # Use the actuators 
-    controller.activate(act_xtranslate)
-    controller.activate(act_zrotate)
-    controller.activate(act_ytranslate)
+    # move game object
+    camera.applyMovement(translation, local)
+    camera.applyMovement(rotation, local)
 
 main()
