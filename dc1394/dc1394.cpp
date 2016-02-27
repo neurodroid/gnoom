@@ -116,8 +116,8 @@ void* thread_acq_image(void*) {
 #define LICKOMETER
 
 #ifdef LICKOMETER
-const static int LICK_FRAME_THRESHOLD = 35;
-const static int LICK_SUM_THRESHOLD = 700000000;
+const static int LICK_FRAME_THRESHOLD = 25;
+const static int LICK_SUM_THRESHOLD = 1000000;
 #else
 
 #include <pthread.h>

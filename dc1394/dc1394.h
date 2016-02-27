@@ -8,8 +8,8 @@
 static const double BILLION = 1000000000L;
 static const int BUFSIZE = 4096;
 static const int NUMBUFS = 50;
-static const int WIDTH = 240;
-static const int HEIGHT = 180;
+static const int WIDTH = 160;
+static const int HEIGHT = 120;
 static const int FPS = 100; // 30;
 static const double TIMEOUT = 2.0;
 static const char* trunk = "/media/DriveStation/";
