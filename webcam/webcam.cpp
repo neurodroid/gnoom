@@ -18,6 +18,7 @@ static const int BUFSIZE = 4096;
 static const int WIDTH = 320;
 static const int HEIGHT = 240;
 static const int FPS = 30;
+static const int CAM_ID = 2;
 static const bool g_rotate = false;
 
 double tdiff(timespec time1, timespec time0) {
@@ -66,11 +67,11 @@ int main (int argc, char **argv)
     double target_dur = 1.0/fps;
     double tol = 1.0e-3;
     
-    cv::VideoCapture camera(2);
+    cv::VideoCapture camera(CAM_ID);
     if (camera.isOpened()) {
         camera.release();
     }
-    camera.open(2);
+    camera.open(CAM_ID);
 
     camera.set(CV_CAP_PROP_FRAME_WIDTH, WIDTH);
     camera.set(CV_CAP_PROP_FRAME_HEIGHT, HEIGHT);
