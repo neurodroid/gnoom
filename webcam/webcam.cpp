@@ -11,8 +11,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <algorithm>
-#include <cv.h>
-#include <highgui.h>
+#include <opencv2/opencv.hpp>
 
 static const double BILLION = 1000000000L;
 static const int BUFSIZE = 4096;
