@@ -20,7 +20,7 @@ import sensor, image, time
 sensor.reset()
 sensor.set_pixformat(sensor.GRAYSCALE) # grayscale is faster
 sensor.set_framesize(sensor.VGA)   # Set frame size to QVGA (320x240)
-sensor.set_windowing((240, 180, 160, 120))   # Set frame size to QVGA (320x240)
+sensor.set_windowing((260, 200, 120, 80))   # Set frame size to QVGA (320x240)
 sensor.skip_frames(time = 100)
 
 while(True):
