@@ -8,11 +8,13 @@ import time
 import sys
 import os
 import subprocess
+import shutil
 import cv2
 import openmv
 import tempfile
 import datetime
 import numpy as np
+import tarfile
 
 script = """
 import sensor, image, time
@@ -142,13 +144,21 @@ if __name__ == "__main__":
             
             # Stop the recording
             if has_data and datadec.find('stop') != -1 and writer is not None:
-                print("OPENMV: Stopping video")
+                sys.stdout.write("OPENMV: Stopping video, creating tarfile... ")
+                sys.stdout.flush()
                 writer.release()
                 del(writer)
                 writer = None
                 f_timestamps.flush()
                 f_timestamps.close()
                 f_timestamps = None
+                tarf = fn_timestamps[:-len(".timestamps")] + ".tar"
+                with tarfile.open(tarf, 'w') as tar:
+                    tar.add(tarf[:-len(".tar")])
+
+                shutil.rmtree(tarf[:-len(".tar")])
+                sys.stdout.write("done")
+                
                 # cmd = ['a2mp4.sh', '%s' % fn, '%s.mp4' % fn[:-4]]
                 # proc = subprocess.Popen(cmd, bufsize=-1)
             if has_data and datadec.find('avi') != -1 and datadec.find('stop') == -1:
@@ -156,7 +166,7 @@ if __name__ == "__main__":
                     fn = datadec[datadec.find("begin")+5:datadec.find("end")]
                     os.makedirs(fn)
                     fn_timestamps = fn + ".timestamps"
-                    fn = os.path.join(fn, r'_%09d.jpg')
+                    fn = os.path.join(fn, r'%09d.jpg')
                     print("OPENMV: Starting video " + fn)
                     f_timestamps = open(fn_timestamps, 'wb')
                     # fourcc = cv2.VideoWriter_fourcc(*'FFV1')
