@@ -17,7 +17,7 @@ readout.o: readout.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c readout.cpp
 
 readout_zmq: $(OBJS_READOUT_ZMQ)
-	$(LD) -lzmq $(OBJS_READOUT_ZMQ) -lrt -o readout_zmq
+	$(LD) $(OBJS_READOUT_ZMQ) -lrt -lzmq -lzmqpp -o readout_zmq
 
 readout_zmq.o: readout.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -DUSE_ZMQ -c readout.cpp -o readout_zmq.o
