@@ -23,9 +23,13 @@
 #include <cstddef>
 #include <iostream>
 #include <ctime>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/types.h>
+#ifdef USE_ZMQ
+    #include <zmq.hpp>
+#else
+    #include <sys/socket.h>
+    #include <sys/un.h>
+    #include <sys/types.h>
+#endif
 #include <sstream>
 #include <algorithm>
 #include <fcntl.h>
@@ -49,6 +53,10 @@ double t2d(timespec time1) {
     return time1.tv_sec + time1.tv_nsec / BILLION;
 }
 
+void close(const zmq::socket_t& s) {
+
+}
+
 int main (int argc, char **argv)
 {
     // parse arguments:
@@ -67,22 +75,28 @@ int main (int argc, char **argv)
     }
 
 #ifndef STANDALONE
-    int s;
-    if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        perror("USBREAD: server: socket");
-        return -1;
-    }
-
-    /*
-     * Create the address we will be connecting to.
-     */
-    sockaddr_un saun;
-
     std::ostringstream tmpfn;
     tmpfn << "mouse" << socketno << "socket" << ntry;
     std::cout << "USBREAD: socket name " << tmpfn.str() << std::endl;
 
     int nameLen = strlen(tmpfn.str().c_str());
+#ifdef USE_ZMQ
+    zmq::context_t context (1);
+    zmq::socket_t s(context, ZMQ_REQ);
+    std::ostringstream tmpfnzmq;
+    tmpfnzmq << "ipc://@" << tmpfn.str();
+    socket.connect(tmpfnzmq.str().c_str());
+#else
+    int s;
+    if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        perror("USBREAD: server: socket");
+        return -1;
+    }
+    /*
+     * Create the address we will be connecting to.
+     */
+    sockaddr_un saun;
+
     if (nameLen >= (int) sizeof(saun.sun_path) -1)  /* too long? */
         return -1;
 
@@ -105,10 +119,17 @@ int main (int argc, char **argv)
         perror("USBREAD: client: connect");
         return -1;
     }
+#endif
 
     bool connected = false;
+#ifdef USE_ZMQ
+    zmq::message_t data;
+    socket.recv (&data);
+    int nrec = data.size();
+#else
     std::vector<char> data(BUFSIZE);
     int nrec = recv(s, &data[0], data.size(), 0);
+#endif
     std::string datastr(data.begin(), data.end());
     if ((nrec<5) ||(datastr.substr(0,5) != "start")) {
         std::cerr << "USBREAD: Didn't receive start; exiting now" << std::endl;
@@ -118,6 +139,13 @@ int main (int argc, char **argv)
     connected = true;
     
     std::string ready = "ready";
+#ifdef USE_ZMQ
+    zmq::message_t reply (ready.size());
+    memcpy (reply.data (), ready.c_str(), ready.size());
+    while (!socket.send (reply)) {
+        perror("USBREAD: client: send");
+    }
+#else
     while (send(s, ready.c_str(), ready.size(), 0) < 0) {
         perror("USBREAD: client: send");
     }
@@ -129,6 +157,8 @@ int main (int argc, char **argv)
     if (fcntl(s, F_SETFL, flags | O_NONBLOCK)==-1) {
         perror("USBREAD: client: unblock");
     }
+#endif
+
 #endif
     std::ostringstream devname;
     devname << "/dev/input/event" << index;
@@ -182,8 +212,13 @@ int main (int argc, char **argv)
         clock_gettime( CLOCK_REALTIME, &t_loop);
 
 #ifndef STANDALONE
+#ifdef USE_ZMQ        
+        zmq::message_t data;
+        socket.recv (&data, zmq::ZMQ_NOBLOCK);
+#else
         std::vector<char> data(BUFSIZE);
         int nrec = recv(s, &data[0], data.size(), 0);
+#endif
         std::string datastr(data.begin(), data.end());
 	// std::cout << datastr << std::endl;
         if (datastr.find("1")==std::string::npos) {
@@ -204,7 +239,13 @@ int main (int argc, char **argv)
         if (datastr.find("quit")!=std::string::npos) {
             std::cout << "USBREAD: Game over signal." << std::endl;
             std::string sclose = "close";
+#ifdef USE_ZMQ         
+            zmq::message_t reply (sclose.size());
+            memcpy (reply.data (), sclose.c_str(), sclose.size());
+            while (!socket.send (reply, zmq::ZMQ_NOBLOCK)) {
+#else
             while (send(s, sclose.c_str(), sclose.size(), 0) < 0) {
+#endif
                 perror("USBREAD: client: send");
             }
             close(s);
@@ -272,7 +313,13 @@ int main (int argc, char **argv)
         }
         if (tdiff(time1, t_sent) > 0.01) {
             t_sent = time1;
+#ifdef USE_ZMQ
+            zmq::message_t reply (sizeof(double)*buffer.size());
+            memcpy (reply.data (), &buffer[0], sizeof(double)*buffer.size());
+            if (!socket.send (reply, zmq::ZMQ_NOBLOCK)) {
+#else
             if (send(s, &buffer[0], sizeof(double)*buffer.size(), 0) < 0) {
+#endif
                 if (has_data) {
                     perror("USBREAD: terminating, send failed");
 		    close(s);
