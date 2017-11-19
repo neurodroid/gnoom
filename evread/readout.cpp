@@ -53,9 +53,11 @@ double t2d(timespec time1) {
     return time1.tv_sec + time1.tv_nsec / BILLION;
 }
 
+#ifdef USE_ZMQ
 void close(const zmq::socket_t& s) {
 
 }
+#endif
 
 int main (int argc, char **argv)
 {
@@ -85,7 +87,7 @@ int main (int argc, char **argv)
     zmq::socket_t s(context, ZMQ_REQ);
     std::ostringstream tmpfnzmq;
     tmpfnzmq << "ipc://@" << tmpfn.str();
-    socket.connect(tmpfnzmq.str().c_str());
+    s.connect(tmpfnzmq.str().c_str());
 #else
     int s;
     if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
@@ -124,13 +126,15 @@ int main (int argc, char **argv)
     bool connected = false;
 #ifdef USE_ZMQ
     zmq::message_t data;
-    socket.recv (&data);
+    s.recv (&data);
     int nrec = data.size();
+    char* cdata = static_cast<char*>(data.data());
+    std::string datastr(cdata, nrec);
 #else
     std::vector<char> data(BUFSIZE);
     int nrec = recv(s, &data[0], data.size(), 0);
-#endif
     std::string datastr(data.begin(), data.end());
+#endif
     if ((nrec<5) ||(datastr.substr(0,5) != "start")) {
         std::cerr << "USBREAD: Didn't receive start; exiting now" << std::endl;
 	close(s);
@@ -142,7 +146,7 @@ int main (int argc, char **argv)
 #ifdef USE_ZMQ
     zmq::message_t reply (ready.size());
     memcpy (reply.data (), ready.c_str(), ready.size());
-    while (!socket.send (reply)) {
+    while (!s.send (reply)) {
         perror("USBREAD: client: send");
     }
 #else
@@ -214,12 +218,14 @@ int main (int argc, char **argv)
 #ifndef STANDALONE
 #ifdef USE_ZMQ        
         zmq::message_t data;
-        socket.recv (&data, zmq::ZMQ_NOBLOCK);
+        s.recv (&data, ZMQ_NOBLOCK);
+        char* cdata = static_cast<char*>(data.data());
+        std::string datastr(cdata, nrec);
 #else
         std::vector<char> data(BUFSIZE);
         int nrec = recv(s, &data[0], data.size(), 0);
-#endif
         std::string datastr(data.begin(), data.end());
+#endif
 	// std::cout << datastr << std::endl;
         if (datastr.find("1")==std::string::npos) {
             if (connected) {
@@ -242,7 +248,7 @@ int main (int argc, char **argv)
 #ifdef USE_ZMQ         
             zmq::message_t reply (sclose.size());
             memcpy (reply.data (), sclose.c_str(), sclose.size());
-            while (!socket.send (reply, zmq::ZMQ_NOBLOCK)) {
+            while (!s.send (reply, ZMQ_NOBLOCK)) {
 #else
             while (send(s, sclose.c_str(), sclose.size(), 0) < 0) {
 #endif
@@ -316,7 +322,7 @@ int main (int argc, char **argv)
 #ifdef USE_ZMQ
             zmq::message_t reply (sizeof(double)*buffer.size());
             memcpy (reply.data (), &buffer[0], sizeof(double)*buffer.size());
-            if (!socket.send (reply, zmq::ZMQ_NOBLOCK)) {
+            if (!s.send (reply, ZMQ_NOBLOCK)) {
 #else
             if (send(s, &buffer[0], sizeof(double)*buffer.size(), 0) < 0) {
 #endif
