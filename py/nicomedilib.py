@@ -8,7 +8,9 @@ import string
 import socket
 import subprocess
 import select
+import struct
 import settings
+import ctypes
 
 import numpy as np
 
@@ -23,13 +25,14 @@ except:
     aref_ground = None
 
 gPlot = True
+READBUFFER = 12
+MINBUFFER = 0
 
 def safe_send(conn, msg, errmsg):
-    sent = False
-    while not sent:
+    while True:
         try:
             conn.send(msg.encode('latin-1'))
-            sent = True
+            break
         except:
             sys.stdout.write(errmsg)
             sys.stdout.flush()
@@ -84,6 +87,34 @@ def make_cmd(subdev, dt, chlist, nchans):
     cmd.chanlist_len = nchans
     return cmd
 
+def make_cmd_ao(subdev, dt, chlist, nchans, nsamples):
+    dt_ns = int(1.0e6*dt)
+
+    cmd = c.comedi_cmd_struct()
+
+    cmd.subdev = subdev
+    cmd.flags = 0 # c.TRIG_WAKE_EOS
+
+    cmd.start_src = c.TRIG_INT
+    cmd.start_arg = 0
+
+    cmd.scan_begin_src = c.TRIG_TIMER
+    cmd.scan_begin_arg =  dt_ns # ns
+
+    cmd.convert_src = c.TRIG_NOW
+    cmd.convert_arg = 0 #dt_ns/nchans
+
+    cmd.scan_end_src = c.TRIG_COUNT
+    cmd.scan_end_arg = nchans
+
+    cmd.stop_src = c.TRIG_NONE # continuous acquisition
+    cmd.stop_arg = 0
+
+    cmd.chanlist = chlist
+    cmd.chanlist_len = nchans
+
+    return cmd
+
 def make_chlist(chans):
     # list containing the chans, gains and referencing
     nchans = len(chans) #number of channels
@@ -126,6 +157,12 @@ class nichannel(object):
                 else:
                     sys.stdout.write("success\n")
             sys.stdout.flush()
+            self.convpoly_order = int(self.convpoly.order.real)
+            self.convpoly_expansion_origin = self.convpoly.expansion_origin.real
+            c_coeff = ctypes.c_double * (int(self.convpoly.order.real)+1)
+            c_coeff = c_coeff.from_address(int(self.convpoly.coefficients))
+            self.convpoly_coefficients = np.array([
+                coeff.real for coeff in c_coeff])
         else:
             self.convpoly = None
         self.maxdata = c.comedi_get_maxdata(self.dev, self.subdev, self.no)
@@ -141,6 +178,57 @@ class nichannel(object):
         sys.stdout.write("NICOMEDI: Buffer size: %d\n" % self.buffer)
         sys.stdout.flush()
 
+def intn_trig(aochAO):
+    '''
+    Sets the internal trigger on the NI/comedi device.
+    
+    Keyword arguments:
+    subd -- the integer subdevice number
+    
+    Supplies an internal trigger to the subdevice number
+    given by the function argument. Returns a 1 if successful
+    and a -1 if it fails.
+    
+    '''
+    insn = c.comedi_insn_struct()
+    insn.insn = c.INSN_INTTRIG
+    insn.subdev = aochAO.subdev
+    insn.n = 1
+    data = c.lsampl_array(insn.n)
+    data[0] = 0
+    insn.data = data.cast()
+    return c.comedi_do_insn(aochAO.dev, insn)
+
+
+def byte_convert(waveform):
+    '''
+    From http://possm.googlecode.com/svn/trunk/controller/comediInterface.py
+    Converts a waveform to a string of 2-byte numbers.
+
+    Keyword arguments:
+    waveform -- the waveform in list format
+
+    byte_convert takes a list of integers (range 0-65535) and returns
+    a string of 2-byte numbers. The string returned is the correct format
+    for writing to the comedi data buffer for DAC operations.
+    '''
+    data = []
+    for i in range(len(waveform)):
+        data.append(struct.pack('H',waveform[i]))
+    return b''.join(data)
+
+def cpoly(data, channel):
+    """
+    The conversion algorithm is::
+        x = sum_i c_i * (d-d_o)^i
+    where `x` is the returned physical value, `d` is the supplied data,
+    `c_i` is the `i`\th coefficient, and `d_o` is the expansion origin.
+    i runs from 0 to order (inclusive).
+    """
+    return np.sum([channel.convpoly_coefficients[i] * (
+                       data-channel.convpoly_expansion_origin)**i
+                   for i in range(channel.convpoly_order+1)], axis=0)
+       
 def databstr2np(databstr, gains, channels):
     str2np = np.fromstring(databstr, np.uint32)
     if len(channels)==1:
@@ -148,15 +236,20 @@ def databstr2np(databstr, gains, channels):
                              for pt in str2np],
                         dtype=np.float32)/gains[0]
     else:
-        arr1 = np.array([c.comedi_to_physical(int(pt), channels[0].convpoly) \
-                             for pt in str2np[::3]],
-                        dtype=np.float32)/gains[0]
-        arr2 = np.array([c.comedi_to_physical(int(pt), channels[1].convpoly) \
-                             for pt in str2np[1::3]],
-                        dtype=np.float32)/gains[1]
-        frames = np.array([int(c.comedi_to_physical(int(pt), channels[2].convpoly) > 2.5)\
-                             for pt in str2np[2::3]],
-                          dtype=np.int8)
+        arr1 = cpoly(str2np[0::3], channels[0]).astype(np.float32)/gains[0]
+        arr2 = cpoly(str2np[1::3], channels[1]).astype(np.float32)/gains[1]
+        arr3 = cpoly(str2np[2::3], channels[2]).astype(np.int)
+        frames = (arr3 > 2.5).astype(np.int8)
+#        arr1 = np.array([
+#            c.comedi_to_physical(int(pt), channels[0].convpoly)
+#            for pt in str2np[::3]], dtype=np.float32)/gains[0]
+#        arr2 = np.array([
+#            c.comedi_to_physical(int(pt), channels[1].convpoly)
+#            for pt in str2np[1::3]], dtype=np.float32)/gains[1]
+#        frames2 = np.array([
+#            int(c.comedi_to_physical(int(pt), channels[2].convpoly) > 2.5)
+#            for pt in str2np[2::3]], dtype=np.int8)
+#        print("SUM", np.sum(frames2-frames), "SUM")
         return arr1, arr2, frames
 
 def find_edges(frames):
@@ -183,6 +276,74 @@ def init_comedi_ai(aichFR, aichIC, aichEC, dt):
 
     return cmdai
 
+def init_comedi_ao(aochAO, dt, nsamples):
+
+    sys.stdout.write("NICOMEDI: Initializing analog outputs... ")
+    sys.stdout.flush()
+
+    chansao = [aochAO]
+    chlistao = make_chlist(chansao)
+
+    cmdao = make_cmd_ao(aochAO.subdev, dt, chlistao, len(chansao), nsamples)
+    #test our comedi command a few times. 
+    ntry = 0
+    while c.comedi_command_test(aochAO.dev, cmdao):
+        ntry += 1
+        if ntry>10:
+            raise Exception("NICOMEDI: Couldn't write to comedi AO device")
+
+    sys.stdout.write("done\n")
+    sys.stdout.flush()
+
+    return cmdao, chlistao
+
+def scale_ao_700b_cc(current):
+    gain_amp = 400.0 # pA/V
+    # e.g. 100 pA -> 0.25 V
+    voltage = current / gain_amp
+    
+    gain_digitizer = 20.0/65536.0 # V/16-bit input
+    # e.g. 0.25 V -> 819.2
+    input16 = int(np.round(voltage / gain_digitizer))
+    
+    return input16
+
+def write_comedi_ao(aochAO, cmdao, waveform, chunksize=1024):
+    data = byte_convert(waveform) # waveform.tobytes()
+    err = c.comedi_command(aochAO.dev, cmdao)
+    if err < 0:
+       comedi_errcheck()
+
+    m = os.write(aochAO.fd, data[:])
+    print("Writing", m, "of", len(waveform), "bytes")
+    if m == 0:
+        raise Exception('NICOMEDI: write error')
+    
+    ret = 0
+    while ret == 0:
+        ret = intn_trig(aochAO)
+    print('NICOMEDI: Internal trigger')
+    if m < len(data):
+        n=m
+        while True:
+            if n < len(data):
+                written = False
+                while not written:
+                    try:
+                        m = os.write(aochAO.fd, data[n:])
+                        written = True
+                    except BrokenPipeError:
+                        pass
+                print("Writing ", m, " bytes")
+                n += m
+                if m < 0:
+                    raise Exception('NICOMEDI: write error')
+                if m == 0:
+                    break
+            else: m = 0
+            if m == 0:
+                break
+    
 def set_dig_io(ch, mode):
     if mode=='out':
         io = c.COMEDI_OUTPUT
@@ -251,11 +412,10 @@ def spawn_process(procname, cmd=['',], shell=False, system=False, start=True, nt
 
 def init_socket(sockno):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    connected = False
-    while not connected:
+    while True:
         try:
             s.connect("\0comedisocket%d" % sockno)
-            connected=True
+            break
         except:
             pass
 
@@ -267,16 +427,15 @@ def init_socket(sockno):
 
     s.setblocking(0)
 
-    return s, blenderpath, connected
+    return s, blenderpath
 
 def disconnect(conn):
     sys.stdout.write('NICOMEDI: Received termination signal... ')
     sys.stdout.flush()
-    sent = False
-    while not sent:
+    while True:
         try:
             conn.sendall(b"quit")
-            sent=True
+            break
         except:
             pass
     datawx = ""
@@ -369,7 +528,7 @@ def stop(aichIC, aichEC, aichFR, dt, xunits, yunitsIC, yunitsEC, gainIC, gainEC,
     # os.remove(fntmpEC)
     # os.remove(fntmpFR)
     sys.stdout.write("\nNICOMEDI: Stopping acquisition, read %d samples\n" \
-	                 % len(datalistIC))
+                     % len(datalistIC))
     sys.stdout.flush()
     
     sys.stdout.write("NICOMEDI: Synchronizing in background\n")
@@ -427,7 +586,7 @@ def rescue1ch(filetrnk, xunits="ms", yunits="mV", dt=0.02):
     os.remove(fntmp)
     os.remove(fntmp2)
     sys.stdout.write("\nNICOMEDI: Stopping acquisition, read %d samples\n" \
-	                 % len(datalist))
+                     % len(datalist))
     sys.stdout.flush()
 
 def rescue2ch(filetrnk, xunits="ms", yunitsIC="mV", yunitsEC="mV", dt=0.02):
@@ -485,7 +644,7 @@ def rescue2ch(filetrnk, xunits="ms", yunitsIC="mV", yunitsEC="mV", dt=0.02):
     os.remove(fntmpEC)
     os.remove(fntmpFR)
     sys.stdout.write("\nNICOMEDI: Stopping acquisition, read %d samples\n" \
-	                 % len(datalistIC))
+                     % len(datalistIC))
     sys.stdout.flush()
 
 def rescue_framesonly(filetrnk):
@@ -517,47 +676,60 @@ def rescue_framesonly(filetrnk):
 def read_buffer(aichIC, aichEC, aichFR, gainIC, gainEC, connic, connec, connfr, plot_sample,
                 ftmpIC, ftmpEC, ftmpFR, databstr_old=b''):
 
-    buffersize = c.comedi_get_buffer_contents(aichIC.dev, aichIC.subdev)
-    if buffersize < 0:
-        sys.stdout.write("NICOMEDI: Warning: buffer error\n")
-        comedi_errcheck()
-    if buffersize > aichIC.maxbuffer/2:
-        sys.stdout.write("NICOMEDI: Warning: buffer is more than half full\n")
-    
-    if buffersize >= 12288:
-        try:
-            databstr_full = os.read(aichIC.fd, aichIC.maxbuffer)
-        except:
-            sys.stdout.write("NICOMEDI: Reading from device failed\n")
-            sys.stdout.flush()
-            databstr_full = b''
-
-        databstr_full = databstr_old + databstr_full
-        buffer12 = int(len(databstr_full)/12) * 12
-        databstr = databstr_full[:buffer12]
-        databstr_rem = databstr_full[buffer12:]
-
-        tmpIC, tmpEC, frames = databstr2np(databstr, [gainIC, gainEC], [aichIC, aichEC, aichFR])
-        ftmpIC.write(tmpIC.tostring()) 
-        ftmpIC.flush()
-        ftmpEC.write(tmpEC.tostring()) 
-        ftmpEC.flush()
-        ftmpFR.write(frames.tostring())
-        ftmpFR.flush()
-        if gPlot:
+    databstr_full = b''
+    t0 = time.time()
+    while True:
+        buffersize = c.comedi_get_buffer_contents(aichIC.dev, aichIC.subdev)
+        if buffersize >= READBUFFER:
             try:
-                connic.send(tmpIC[::plot_sample].tostring())
-                connec.send(tmpEC[::plot_sample].tostring())
-                connfr.send(frames[::plot_sample].tostring())
+                databstr_full += os.read(aichIC.fd, aichIC.maxbuffer)
             except:
-                sys.stdout.write("NICOMEDI: Error communicating with scope\n")
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        return databstr_rem
-
-    else:
-        time.sleep(1e-4)
+                sys.stdout.write("NICOMEDI: Reading from device failed\n")
+                sys.stdout.flush()
+    
+        if buffersize < 0:
+            sys.stdout.write("NICOMEDI: Warning: buffer error\n")
+            comedi_errcheck()
+            break
+        elif buffersize > aichIC.maxbuffer/2:
+            sys.stdout.write("NICOMEDI: Warning: buffer is more than half full\n")
+        elif buffersize <= MINBUFFER:
+            break    
+    
+#    t1 = time.time()   
+#    sys.stdout.write("R {0:.02f}\n".format(t1-t0))
+    if databstr_full == b'':
+        # time.sleep(5e-4)
         return databstr_old
+
+    databstr_full = databstr_old + databstr_full
+    buffer12 = int(len(databstr_full)/12) * 12
+    databstr = databstr_full[:buffer12]
+    databstr_rem = databstr_full[buffer12:]
+#    t2 = time.time()   
+#    sys.stdout.write("C {0:.02f}\n".format(t2-t1))
+
+    tmpIC, tmpEC, frames = databstr2np(databstr, [gainIC, gainEC], [aichIC, aichEC, aichFR])
+#    t3 = time.time()   
+#    sys.stdout.write("N {0:.02f}\n".format(t3-t2))
+    ftmpIC.write(tmpIC.tostring()) 
+    ftmpIC.flush()
+    ftmpEC.write(tmpEC.tostring()) 
+    ftmpEC.flush()
+    ftmpFR.write(frames.tostring())
+    ftmpFR.flush()
+#    t4 = time.time()   
+#    sys.stdout.write("F {0:.02f}\n".format(t4-t3))
+    if gPlot:
+        try:
+            connic.send(tmpIC[::plot_sample].tostring())
+            connec.send(tmpEC[::plot_sample].tostring())
+            connfr.send(frames[::plot_sample].tostring())
+        except:
+            sys.stdout.write("NICOMEDI: Error communicating with scope\n")
+    sys.stdout.write('.')
+    sys.stdout.flush()
+    return databstr_rem
 
 def shutdown(aich):
     ret = c.comedi_close(aich.dev)
