@@ -90,16 +90,14 @@ if __name__=="__main__":
             break
             
         if arduino is not None:
-            blocking = True
-            while blocking:
-                try:
-                    arduino.write('w'.encode('latin1'))
-                    blocking = False
-                except BlockingIOError:
-                    pass
-            lickcounter = arduino.read_until(b'\n')
-            int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.int8)
-            if int_lickcounter.shape[0] == 0:
+            try:
+                arduino.write('w'.encode('latin1'))
+                lickcounter = arduino.read_until(b'\n')
+                int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.int8)
+                if int_lickcounter.shape[0] == 0:
+                    int_lickcounter = [0]
+            except BlockingIOError:
+                sys.stderr.write("LICKSENSOR: Couldn't write to arduino\n")
                 int_lickcounter = [0]
         else:
             int_lickcounter = [0]
