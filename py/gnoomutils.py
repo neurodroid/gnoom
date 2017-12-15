@@ -17,6 +17,13 @@ import xinput
 import gnoomcomm as gc
 import gnoomio as gio
 
+if settings.gratings:
+    import chooseWalls
+    import cues
+if settings.cues:
+    import chooseCues
+    import cues
+
 if sys.version_info >= (3,):
     import mathutils as mu
 else:
@@ -372,7 +379,7 @@ def zeroPos():
                     GameLogic.Object["stopped_counter_sessions"]=0
                 GameLogic.Object['run_number']=0
                 GameLogic.Object['current_order']=chooseCues.generate_order(settings.content_trials)
-                write_new_session()
+                cues.write_new_session()
                 print(GameLogic.Object['current_order'])
             else:
                 GameLogic.Object['run_number']+=1
