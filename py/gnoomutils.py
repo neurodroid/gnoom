@@ -267,6 +267,44 @@ def zeroPos():
     # controller = GameLogic.getCurrentController()
     # own = controller.owner
     scene = GameLogic.getCurrentScene()
+
+    
+    # Romain
+    # avoid multiple resettings
+    # this is important here because the gratings are changed
+    # when calling zeroPos and we don't want to have two events
+    # associated with one resetting
+    
+    # finally I generalize it to all cases
+    #if settings.gratings:
+    try : # if initialisation, "last_zero" still doesn't exist
+        GameLogic.Object["last_zero"]
+        init=0
+    except:
+        init=1
+    if not init:
+        if GameLogic.Object["last_zero"]<=3:
+            return
+        
+    if init and settings.gratings : 
+        # Romain   
+        # make some objects disappear
+        objectsToRemove=[] # put the object name into quotes exple : ["name1","name2"]
+        for i in objectsToRemove:
+            scene.objects[i].visible=False
+        # set normal walls to invisible
+        for i in scene.objects:
+            if i.name[:8]=="LeftWall" or i.name[:9]=="RightWall": 
+                i.visible=False
+    if init and not settings.gratings :
+        for i in ["LW1","LW2","RW1","RW2"]:
+            scene.objects[i].visible=False
+    if init and not settings.cues:
+        for i in settings.objects_cues:
+            scene.objects[i].visible=False
+        
+    GameLogic.Object["last_zero"]=0
+
     if scene.name == "Scene":
         playerName = 'MovingCube'
         rew1Name = 'Cylinder.001'
@@ -320,6 +358,31 @@ def zeroPos():
         own.localPosition = [0, -150, 1.5]
     else:
         own.localPosition = [0, 0, 0]
+
+    # Romain : randomly change wall gratings
+    if settings.gratings:
+        chooseWalls.randomWalls(settings.proba_env1)
+        
+    # Romain : select the pair of cues either 'randomly without replacement' settings.groups_trials = True
+    # or completely randomly if settings.groups_trials = False
+    if settings.cues:
+        if settings.groups_trials:
+            if GameLogic.Object['run_number'] in [None,settings.n_runs-1]:
+                if GameLogic.Object['run_number']==settings.n_runs-1:
+                    GameLogic.Object["stopped_counter_sessions"]=0
+                GameLogic.Object['run_number']=0
+                GameLogic.Object['current_order']=chooseCues.generate_order(settings.content_trials)
+                write_new_session()
+                print(GameLogic.Object['current_order'])
+            else:
+                GameLogic.Object['run_number']+=1
+                GameLogic.Object["stopped_counter_trials"]=0
+            chooseCues.chooseCues(GameLogic.Object['current_order'][GameLogic.Object['run_number']])
+        else:
+            chooseCues.randomCues(settings.proba_mismatch)
+    zeroPump()
+    GameLogic.Object['WallTouchTicksCounter']=None
+    GameLogic.Object['RewardTicksCounter'] = None
 
 def startOdorCounter():
     GameLogic.Object['OdorTicksCounter'] = 0
