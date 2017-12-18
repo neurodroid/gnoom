@@ -14,7 +14,6 @@
 
 # Read out piezo lick sensor and broadcast data via socket
 # (c) C. Schmidt-Hieber, 2013
-
 import sys
 import os
 import socket
@@ -25,7 +24,21 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../arduino/py")
 import arduino_serial
 
-import settings
+if 'linux' in sys.platform:
+    arduino_port = None
+    trunk = "/dev/ttyUSB"
+    for nport in range(0,9):
+        arduino_port = "%s%i" % (trunk,nport)
+        if os.path.exists(arduino_port):
+            break
+    if not os.path.exists(arduino_port):
+        trunk = "/dev/ttyACM"
+        for nport in range(0,9):
+            arduino_port = "%s%i" % (trunk,nport)
+            if os.path.exists(arduino_port):
+                break
+else:
+    arduino_port = "/dev/tty.usbserial-A6006klF"
 
 def init_socket(sockno):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -56,7 +69,7 @@ if __name__=="__main__":
     socklick, blenderpath, connected = init_socket(sockno)
 
     try:
-        arduino = arduino_serial.SerialPort(settings.arduino_port, 19200)
+        arduino = arduino_serial.SerialPort(arduino_port, 19200)
         sys.stdout.write("LICKPIEZOSENSOR: Successfully opened arduino\n")
     except OSError:
         sys.stdout.write("LICKPIEZOSENSOR: Failed to open arduino\n")
