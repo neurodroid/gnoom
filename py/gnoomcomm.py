@@ -7,6 +7,8 @@ import socket
 import subprocess
 import numpy as np
 import settings
+import gnoomutils as gu
+import gnoomio as gio
 if settings.usezmq:
     import zmq
 
@@ -220,7 +222,7 @@ def read_licksensor():
             pass
 
 def read_licksensor_piezo():
-    licks = gc.parse_licksensor(GameLogic.Object['lickpiezoconn'])
+    licks = parse_licksensor(GameLogic.Object['lickpiezoconn'])
     if licks.shape[0] > 0:
         if np.any(licks[:, 1]):
             GameLogic.Object['piezolicks'] += np.sum(licks[:, 1])
@@ -297,7 +299,7 @@ def valve_command(arduino, cmd, kb=None):
            dt = time1 -  GameLogic.Object['train_tstart']
         else:
            dt = time1 -  GameLogic.Object['time0']
-        print("%ss " % (time2str(dt))+ str(kb))
+        print("%ss " % (gu.time2str(dt))+ str(kb))
         executed = False
         while not executed:
             try:

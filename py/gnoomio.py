@@ -1,11 +1,15 @@
 """Write data to files"""
 import bge.logic as GameLogic
 import os
+import sys
+import time
 import datetime
 import shutil
+import numpy as np
 
 import settings
 import gnoomutils as gu
+import gnoomcomm as gc
 
 gGid_vr_users=1001
 
@@ -206,7 +210,7 @@ def save_event(ev_code):
         GameLogic.Object['event_file'].write(ev_code.encode('utf_8'))
         GameLogic.Object['event_file'].flush()
 
-def write_training_file(move):
+def write_training_file(move, xtranslate, ytranslate, zrotate):
     # get controller
     controller = GameLogic.getCurrentController()
     own = controller.owner
@@ -292,7 +296,7 @@ def start_training_file():
     # line break for printing time:
     sys.stdout.write("\n")
 
-def write_record_file(move):
+def write_record_file(move, xtranslate, ytranslate, zrotate):
     time1 = time.time()
     dt = time1 -  GameLogic.Object['time0']
     arduino = GameLogic.Object['arduino']
@@ -301,13 +305,13 @@ def write_record_file(move):
     
     if GameLogic.Object['bcstatus']==False:
         if arduino is not None:
-            write_arduino_nonblocking(arduino, b'u')
+            gc.write_arduino_nonblocking(arduino, b'u')
         if settings.has_comedi and ncl.has_comedi:
             ncl.set_trig(GameLogic.Object['outfrch'], 1)
         GameLogic.Object['bcstatus']=True
     else:
         if arduino is not None:
-            write_arduino_nonblocking(arduino, b'd')
+            gc.write_arduino_nonblocking(arduino, b'd')
         if settings.has_comedi and ncl.has_comedi:
             ncl.set_trig(GameLogic.Object['outfrch'], 0)
         GameLogic.Object['bcstatus']=False
@@ -361,7 +365,7 @@ def stop_record_file():
         # TODO: get correct intan ephys end time
         ephysstop = time.time()-GameLogic.Object['time0']
     if arduino is not None:
-        write_arduino_nonblocking(arduino, b'd')
+        gc.write_arduino_nonblocking(arduino, b'd')
 
     GameLogic.Object['event_file'].close()
     GameLogic.Object['current_file'].close()

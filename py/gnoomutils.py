@@ -13,6 +13,7 @@ import nicomedilib as ncl
 import arduino_serial
 import serial
 import xinput
+import random
 
 import gnoomcomm as gc
 import gnoomio as gio
@@ -283,13 +284,12 @@ def zeroPos():
     # associated with one resetting
     
     # finally I generalize it to all cases
-    #if settings.gratings:
     try : # if initialisation, "last_zero" still doesn't exist
         GameLogic.Object["last_zero"]
         init=0
     except:
         init=1
-    if not init:
+    if not init and (settings.gratings or settings.cues):
         if GameLogic.Object["last_zero"]<=3:
             return
         
@@ -304,12 +304,17 @@ def zeroPos():
             if i.name[:8]=="LeftWall" or i.name[:9]=="RightWall": 
                 i.visible=False
     if init and not settings.gratings :
-        for i in ["LW1","LW2","RW1","RW2"]:
-            scene.objects[i].visible=False
+        try:
+            for i in ["LW1","LW2","RW1","RW2"]:
+                scene.objects[i].visible=False
+        except KeyError:
+            sys.stderr.write("BLENDER: Warning: Grating walls are missing")
     if init and not settings.cues:
-        for i in settings.objects_cues:
-            scene.objects[i].visible=False
-        
+        try:
+            for i in settings.objects_cues:
+                scene.objects[i].visible=False
+        except AttributeError:
+            sys.stderr.write("BLENDER: Warning: Cues are missing")
     GameLogic.Object["last_zero"]=0
 
     if scene.name == "Scene":
@@ -387,9 +392,11 @@ def zeroPos():
             chooseCues.chooseCues(GameLogic.Object['current_order'][GameLogic.Object['run_number']])
         else:
             chooseCues.randomCues(settings.proba_mismatch)
-    zeroPump()
-    GameLogic.Object['WallTouchTicksCounter']=None
-    GameLogic.Object['RewardTicksCounter'] = None
+
+    if settings.cues or settings.gratings:
+        gc.zeroPump()
+        GameLogic.Object['WallTouchTicksCounter']=None
+        GameLogic.Object['RewardTicksCounter'] = None
 
 def startOdorCounter():
     GameLogic.Object['OdorTicksCounter'] = 0
@@ -546,6 +553,8 @@ def move_player(move):
     act_ytranslate = controller.actuators["ytranslate"]
     act_zrotate    = controller.actuators["zrotate"]
 
+    GameLogic.Object['speed_tracker'][GameLogic.Object['nframes'] % len(GameLogic.Object['speed_tracker'])] = ytranslate_move.sum()*settings.calibration_x
+
     act_ytranslate.dLoc = [0.0, ytranslate, 0.0]
     act_ytranslate.useLocalDLoc = True
     # set the values
@@ -561,6 +570,8 @@ def move_player(move):
 
     if not settings.looming:
         controller.activate(act_ytranslate)
+        
+    return xtranslate, ytranslate, zrotate
 
 
 def init():
@@ -661,7 +672,10 @@ def init():
     GameLogic.Object['rewcount'] = 0
     GameLogic.Object['rewfail'] = 0
     GameLogic.Object['puffcount'] = 0
+    GameLogic.Object['puffthistrial'] = 0
+    GameLogic.Object['isloom'] = 0
     GameLogic.Object['loomcounter']=0
+    GameLogic.Object['loom_first_trial']=0
     if settings.linear:
         GameLogic.Object['rewpos'] = [0.98] # 1.0 # np.zeros((16))
     else:
@@ -669,6 +683,7 @@ def init():
     GameLogic.Object['boundx'] =   8.0
     GameLogic.Object['boundy'] = 158.0
     GameLogic.Object['hysteresis'] = 0.5
+    GameLogic.Object['speed_tracker'] = np.zeros((100))
 
     blenderpath = GameLogic.expandPath('//')
     
@@ -858,6 +873,7 @@ def looming():
         #print(GameLogic.Object['loomcounter'])
 
         if GameLogic.Object['loomcounter'] == 0:
+            tracked_speed = np.median(np.abs(GameLogic.Object['speed_tracker']))*1e2 * GameLogic.getLogicTicRate()
             if tracked_speed > settings.loom_speed_threshold:
         # Start trial
                 GameLogic.Object['puffthistrial'] = random.randint(0,1)
@@ -900,10 +916,10 @@ def looming():
                  if (settings.puff_random and GameLogic.Object['puffthistrial']== 1) or not settings.puff_random:
                      if GameLogic.Object['loomcounter']%settings.puffint == settings.loom_airpuff_delay and \
                      GameLogic.Object['puffcount'] < settings.puffnb:
-                          gu.airpuff_loom()
+                          airpuff_loom()
                           GameLogic.Object['puffcount']+= 1
                      else:
-                         gu.airpuff_loom_stop()
+                         airpuff_loom_stop()
                 
             GameLogic.Object['loomcounter'] += 1
         else:
