@@ -254,6 +254,7 @@ def runPump(pumppy, reward=True, buzz=True):
     if pumppy is not None:
         try:
             if reward:
+                sys.stdout.write("BLENDER: Running reward pump\n")
                 pumppy.write(b"RUN\r")
             if buzz:
                 pumppy.write(b"BUZ 1 2\r")

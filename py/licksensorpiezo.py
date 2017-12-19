@@ -126,6 +126,9 @@ if __name__=="__main__":
             socklick.send(np.array([time.time(), int_lickcounter[0]], dtype=np.float64).tostring()) 
         except BlockingIOError:
             pass
+        except BrokenPipeError:
+            sys.stderr.write("LICKPIEZOSENSOR: Broken pipe\n")
+            
 
     socklick.close()
     sys.stdout.write("LICKPIEZOSENSOR: Closing\n")
