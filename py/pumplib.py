@@ -23,7 +23,9 @@ sys.stdout.write("Opening serial port...")
 sys.stdout.flush()
 for nport in range(10):
     try:
-        ser = serial.Serial('/dev/ttyS{0:d}'.format(nport), 19200, bytesize=8, parity='N', stopbits=1, timeout=None)
+        portname = '/dev/ttyS{0:d}'.format(nport)
+        ser = serial.Serial(portname, 19200, bytesize=8, parity='N', stopbits=1, timeout=None)
+        print("Pump found on port " + portname)
         break
     except serial.serialutil.SerialException:
         nport += 1
