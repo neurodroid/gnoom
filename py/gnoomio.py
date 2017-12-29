@@ -171,6 +171,19 @@ def write_licks(licks):
                     sys.stdout.write("%s lick\n" % (gu.time2str(dt)))
                     GameLogic.Object['event_file'].write(b'LI')
                     GameLogic.Object['event_file'].flush()
+
+def write_licks_piezo(licks):
+    if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
+        if licks.shape[0] > 0:
+            if np.any(licks[:, 1]):
+                for nlick in range(licks.shape[0]):
+                    time1 = licks[nlick, 0]
+                    if GameLogic.Object['train_open']:
+                        dt = time1 -  GameLogic.Object['train_tstart']
+                    else:
+                        dt = time1 -  GameLogic.Object['time0']
+                    GameLogic.Object['current_lickfile'].write(np.array([dt,], dtype=np.float32).tostring())
+                    GameLogic.Object['current_lickfile'].write(np.array([licks[nlick, 1]], dtype=np.float64).tostring())
                     
 def write_valve(cmd):
     if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
@@ -259,6 +272,8 @@ def close_training_file():
         GameLogic.Object['current_loomfile'].close()
         GameLogic.Object['loomcounter'] = 0
         GameLogic.Object['loom_first_trial'] = 0
+    if settings.has_licksensor_piezo:
+        GameLogic.Object['current_lickfile'].close()
     train_tend = time.time()-GameLogic.Object['train_tstart']
     sys.stdout.write("BLENDER: Closing file; recorded %s of training\n" % (gu.time2str(train_tend)))
     GameLogic.Object['train_open'] = False
@@ -280,6 +295,9 @@ def start_training_file():
     if settings.looming:
         GameLogic.Object['current_loomfile'] = open(
             fn[:-5] + "_loom", 'wb')
+    if settings.has_licksensor_piezo:
+        GameLogic.Object['current_lickfile'] = open(
+            fn[:-5] + "_lick", 'wb')
     GameLogic.Object['current_fwfile'] = fn[:-4] + "avi"
     if GameLogic.Object['has_fw']:
         gc.safe_send(GameLogic.Object['fwconn'], "begin%send" % GameLogic.Object['current_fwfile'],
@@ -373,6 +391,8 @@ def stop_record_file():
         GameLogic.Object['current_loomfile'].close()
         GameLogic.Object['loomcounter'] = 0
         GameLogic.Object['loom_first_trial'] = 0
+    if settings.has_licksensor_piezo:
+        GameLogic.Object['current_lickfile'].close()
     print("BLENDER: Closing file")
     GameLogic.Object['file_open'] = False
 
@@ -392,6 +412,9 @@ def start_record_file():
     if settings.looming:
         GameLogic.Object['current_loomfile'] = open(
             fn[:-4] + "_loom", 'wb')
+    if settings.has_licksensor_piezo:
+        GameLogic.Object['current_lickfile'] = open(
+            fn[:-4] + "_lick", 'wb')
     GameLogic.Object['current_fwfile'] = fnfw[:-3] + "avi"
     GameLogic.Object['current_ephysfile'] = fn[:-3] + "h5"
     GameLogic.Object['current_settingsfile'] = fn[:-4] + "_settings.txt"

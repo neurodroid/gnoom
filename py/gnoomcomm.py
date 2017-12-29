@@ -213,7 +213,7 @@ def read_optical_sensor():
     return x1, y1, x2, y2, t1, t2, dt1, dt2
 
 def read_licksensor():
-    licks = gc.parse_licksensor(GameLogic.Object['lickconn'])
+    licks = parse_licksensor(GameLogic.Object['lickconn'])
     if licks.shape[0] > 0:
         try:
             if np.any(licks[:,1]):
@@ -225,6 +225,7 @@ def read_licksensor_piezo():
     licks = parse_licksensor(GameLogic.Object['lickpiezoconn'])
     if licks.shape[0] > 0:
         if np.any(licks[:, 1]):
+            gio.write_licks_piezo(licks)
             GameLogic.Object['piezolicks'] += np.sum(licks[:, 1])
             GameLogic.Object['piezoframes'] += 1
         elif GameLogic.Object['piezoframepause'] < 10:
