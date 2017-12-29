@@ -78,6 +78,7 @@ if __name__=="__main__":
     datadec = ""
 
     time0 = time.time()
+    blocking = False
     while True:
         time1 = time.time()
         datadec = ""
@@ -107,6 +108,9 @@ if __name__=="__main__":
         if arduino is not None:
             try:
                 arduino.write('a'.encode('latin1'))
+                if blocking:
+                    sys.stderr.write("LICKPIEZOSENSOR: arduino unblocked\n")
+                    blocking = False
                 lickcounter = arduino.read_until(b'\n')
                 int_lickcounter = np.fromstring(lickcounter[:-1], dtype=np.uint8)
                 if int_lickcounter.shape[0] == 1:
@@ -119,6 +123,7 @@ if __name__=="__main__":
                     int_lickcounter = [0]
             except BlockingIOError:
                 sys.stderr.write("LICKPIEZOSENSOR: Couldn't write to arduino\n")
+                blocking = True
                 int_lickcounter = [0]
         else:
             int_lickcounter = [0]
