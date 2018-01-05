@@ -184,7 +184,8 @@ def write_licks_piezo(licks):
                         dt = time1 -  GameLogic.Object['time0']
                     GameLogic.Object['current_lickfile'].write(np.array([dt,], dtype=np.float32).tostring())
                     GameLogic.Object['current_lickfile'].write(np.array([licks[nlick, 1]], dtype=np.float64).tostring())
-                    
+                    GameLogic.Object['current_lickfile'].flush()
+
 def write_valve(cmd):
     if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
         time1 = time.time()
