@@ -193,9 +193,9 @@ def reward_linear(pumppy, controller):
                 newx = 0
                 # Move to fantasy land to avoid multiple rewards:
                 reward.localPosition = [newx,1000.0,reward.position[2]]
-            zeroPos()
             GameLogic.Object['RewardChange'] = False
             GameLogic.Object['RewardTicksCounter'] += 1
+            zeroPos()
 
         elif GameLogic.Object['RewardTicksCounter'] >= settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post + 1:
             # Reward was just given, animal is back at beginning of track,
