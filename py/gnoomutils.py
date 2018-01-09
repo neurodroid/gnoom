@@ -338,7 +338,7 @@ def zeroPos():
     own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
     if settings.linear and not settings.looming:
         startOdorCounter()
-        own.localPosition = [0, +0, 1.5] # y was +80
+        own.localPosition = [0, settings.startPos, 1.5] # y was +80
         if settings.reward_double:
             
             # Randomly select one of the 2 rewards:
