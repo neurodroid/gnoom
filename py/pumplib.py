@@ -21,7 +21,7 @@ import time
 
 sys.stdout.write("Opening serial port...")
 sys.stdout.flush()
-for nport in range(10):
+for nport in range(9, -1, -1):
     try:
         portname = '/dev/ttyS{0:d}'.format(nport)
         ser = serial.Serial(portname, 19200, bytesize=8, parity='N', stopbits=1, timeout=None)
