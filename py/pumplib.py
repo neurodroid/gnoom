@@ -18,10 +18,17 @@
 import serial
 import sys
 import time
+import socket
 
 sys.stdout.write("Opening serial port...")
 sys.stdout.flush()
-for nport in range(9, -1, -1):
+
+if socket.gethostname() == 'dent3':
+    socketrange = range(9, -1, -1)
+else:
+    socketrange = range(10)
+
+for nport in socketrange:
     try:
         portname = '/dev/ttyS{0:d}'.format(nport)
         ser = serial.Serial(portname, 19200, bytesize=8, parity='N', stopbits=1, timeout=None)
