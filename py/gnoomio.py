@@ -237,6 +237,19 @@ def write_training_file(move, xtranslate, ytranslate, zrotate):
 
     time1 = time.time()
     dt = time1 - GameLogic.Object['train_tstart']
+    arduino = GameLogic.Object['arduino']
+    if GameLogic.Object['bcstatus']==False:
+        if arduino is not None:
+            gc.write_arduino_nonblocking(arduino, b'u')
+        if settings.has_comedi and ncl.has_comedi:
+            ncl.set_trig(GameLogic.Object['outfrch'], 1)
+        GameLogic.Object['bcstatus']=True
+    else:
+        if arduino is not None:
+            gc.write_arduino_nonblocking(arduino, b'd')
+        if settings.has_comedi and ncl.has_comedi:
+            ncl.set_trig(GameLogic.Object['outfrch'], 0)
+        GameLogic.Object['bcstatus']=False
 
     if has_fw:
         frametimefw = parse_frametimes(connfw)-GameLogic.Object['time0']
@@ -265,7 +278,7 @@ def write_training_file(move, xtranslate, ytranslate, zrotate):
                 ], dtype=np.float64).tostring())
     GameLogic.Object['pos_file'].flush()
     
-def close_training_file():
+def stop_training_file():
     GameLogic.Object['train_file'].close()
     GameLogic.Object['event_file'].close()
     GameLogic.Object['pos_file'].close()
@@ -280,7 +293,11 @@ def close_training_file():
     GameLogic.Object['train_open'] = False
     if GameLogic.Object['has_fw']:
         gc.safe_send(GameLogic.Object['fwconn'], 'stop', '')
-        
+    arduino = GameLogic.Object['arduino']
+    if arduino is not None:
+        gc.write_arduino_nonblocking(arduino, b'd')
+    GameLogic.Object['bcstatus']=False
+    
 def start_training_file():
     # Start recordings
     create_train_dir(settings.gAnimal)
