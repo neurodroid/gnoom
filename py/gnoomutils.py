@@ -305,7 +305,7 @@ def zeroPos():
                 i.visible=False
     if init and not settings.gratings :
         try:
-            for i in ["LW1","LW2","RW1","RW2"]:
+            for i in ["LW1","LW2","RW1","RW2","CeilingGrating"]:
                 scene.objects[i].visible=False
         except KeyError:
             sys.stderr.write("BLENDER: Warning: Grating walls are missing")
