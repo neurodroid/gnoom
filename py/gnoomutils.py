@@ -100,11 +100,21 @@ def reward_central():
     controller = GameLogic.getCurrentController()
    
     if settings.linear:
-        reward_linear(pumppy, controller)
-        if settings.reward_double:
-            reward_linear_double(pumppy, controller)
-        elif settings.reward_cpp:
-            reward_cpp(pumppy, controller)
+        if not settings.gratings and not settings.cues:
+            reward_linear(pumppy, controller)
+            if settings.reward_double:
+                reward_linear_double(pumppy, controller)
+            elif settings.reward_cpp:
+                reward_cpp(pumppy, controller)
+        else :
+            if settings.gratings:
+                if GameLogic.Object["current_walls"]==settings.rewarded_env:
+                    #print("ok")
+                    reward_linear(pumppy, controller)
+            if settings.cues:
+                if GameLogic.Object["current_cues"] in settings.rewarded_cues:
+                    #print("ok")
+                    reward_linear(pumppy, controller)                
     else:
         reward_2d(pumppy, controller)
 
@@ -429,6 +439,15 @@ def airpuff_loom_stop():
 
     
 def airpuff(side):
+    if settings.gratings:
+        if GameLogic.Object["current_walls"]!=settings.rewarded_env:# add no false P here
+            zeroPos()
+            return
+    if settings.cues:
+        if GameLogic.Object["current_cues"] not in settings.rewarded_cues:
+            zeroPos()
+            return
+
     if side=='right':
         sensor = 'SRightTouch'
         broadcast = 'right_on'
@@ -476,8 +495,8 @@ def airpuff(side):
                 if apply_puff:
                     GameLogic.Object['puffcount'] += 1
                     gio.write_puff()
-                zeroPos()
                 GameLogic.Object['WallTouchTicksCounter'] += 1
+                zeroPos()
             elif GameLogic.Object['WallTouchTicksCounter'] >= settings.airpuff_delay_ticks + 2:
                 GameLogic.Object['RewardTicksCounter'] = None
                 GameLogic.Object['WallTouchTicksCounter'] = None
