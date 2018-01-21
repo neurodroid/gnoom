@@ -347,7 +347,8 @@ def zeroPos():
     own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
     if settings.linear and not settings.looming:
         startOdorCounter()
-        own.localPosition = [0, settings.startPos, 1.5] # y was +80
+        if settings.replay_track is None:
+            own.localPosition = [0, settings.startPos, 1.5] # y was +80
         if settings.reward_double:
             
             # Randomly select one of the 2 rewards:
@@ -376,9 +377,11 @@ def zeroPos():
             rew3.localPosition = [0, 1000, rew3.position[2]]
             
     elif not settings.looming:
-        own.localPosition = [0, -150, 1.5]
+        if settings.replay_track is None:
+            own.localPosition = [0, -150, 1.5]
     else:
-        own.localPosition = [0, 0, 0]
+        if settings.replay_track is None:
+            own.localPosition = [0, 0, 0]
 
     # Romain : randomly change wall gratings
     if settings.gratings:
@@ -516,6 +519,9 @@ def adjust_webcam():
 
 # correct position upon collision with boundary wall
 def collision():
+    if settings.replay_track is not None:
+        return
+
     controller = GameLogic.getCurrentController()
     own = controller.owner
 
@@ -536,6 +542,22 @@ def move_player(move):
     controller = GameLogic.getCurrentController()
     own = controller.owner
 
+    if settings.replay_track is not None:
+        currentpos = own.localPosition
+        if GameLogic.Object['nreplay'] >= len(GameLogic.Object['replay_pos'][0]):
+            print("BLENDER: Reached end of replay track; starting over")
+            GameLogic.Object['nreplay'] = 0
+        newposx = GameLogic.Object['replay_pos'][0][GameLogic.Object['nreplay']]
+        newposy = GameLogic.Object['replay_pos'][1][GameLogic.Object['nreplay']]
+        newposz = GameLogic.Object['replay_pos'][2][GameLogic.Object['nreplay']]
+        GameLogic.Object['nreplay'] += 1
+        xtranslate = newposx-currentpos[0]
+        ytranslate = newposy-currentpos[1]
+        zrotate = 0
+        own.localPosition = [newposx, newposy, newposz]
+        # print(own.localPosition)
+        return xtranslate, ytranslate, zrotate
+        
     # Note that x is mirrored if the dome projection is used.
     xtranslate = 0 #
     ytranslate = 0
@@ -627,6 +649,18 @@ def init():
     except:
         sys.stdout.write("BLENDER: Failed to open pump\n")
         pumppy = None
+
+    if settings.replay_track is not None:
+        fn_pos = settings.replay_track + '.position'
+        if not os.path.exists(fn_pos):
+            print("BLENDER: Could not find " + fn_pos)
+            settings.replay_track = None
+        else:
+            sys.path.append(os.path.expanduser("~/../cs/py2p/tools"))
+            import training
+            print("BLENDER: Reading replay track from " + fn_pos)
+            GameLogic.Object['replay_pos'] = training.read_pos(fn_pos, 1e9, False)
+            GameLogic.Object['nreplay'] = 0
 
     if ncl.has_comedi:
         print("BLENDER: Found comedi library")
