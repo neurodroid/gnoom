@@ -100,21 +100,17 @@ def reward_central():
     controller = GameLogic.getCurrentController()
    
     if settings.linear:
-        if not settings.gratings and not settings.cues:
-            reward_linear(pumppy, controller)
+        if not settings.cues:
             if settings.reward_double:
                 reward_linear_double(pumppy, controller)
             elif settings.reward_cpp:
                 reward_cpp(pumppy, controller)
-        else :
-            if settings.gratings:
-                if GameLogic.Object["current_walls"]==settings.rewarded_env:
-                    #print("ok")
-                    reward_linear(pumppy, controller)
-            if settings.cues:
-                if GameLogic.Object["current_cues"] in settings.rewarded_cues:
-                    #print("ok")
-                    reward_linear(pumppy, controller)                
+            else:
+                reward_linear(pumppy, controller)
+        else:
+            if GameLogic.Object["current_cues"] in settings.rewarded_cues:
+                #print("ok")
+                reward_linear(pumppy, controller)                
     else:
         reward_2d(pumppy, controller)
 
@@ -170,7 +166,6 @@ def reward_linear(pumppy, controller):
         return
     radar = controller.sensors['SReward']
     reward = radar.hitObject
-    
     if GameLogic.Object['RewardTicksCounter'] is not None:
         if GameLogic.Object['RewardTicksCounter'] == settings.reward_delay_ticks_pre and not GameLogic.Object['RewardChange']:
             # Give reward
@@ -180,7 +175,11 @@ def reward_linear(pumppy, controller):
                 if GameLogic.Object['WallTouchTicksCounter'] is None:
                     rand = np.random.uniform(0,1)
                     if rand <= settings.reward_probability:
-                        gc.runPump(pumppy, reward=True, buzz=settings.reward_buzz)
+                        if settings.gratings:
+                            give_reward = GameLogic.Object["current_walls"] == settings.rewarded_env
+                        else:
+                            give_reward = True
+                        gc.runPump(pumppy, reward=give_reward, buzz=settings.reward_buzz)
                         GameLogic.Object['rewcount'] += 1
                         reward_success = True
                         #Matthias 2016/02/15
@@ -301,7 +300,7 @@ def zeroPos():
         init=1
     if not init and (settings.gratings or settings.cues):
         if GameLogic.Object["last_zero"]<=3:
-            return
+            pass # return
         
     if init and settings.gratings : 
         # Romain   
@@ -404,9 +403,10 @@ def zeroPos():
             chooseCues.randomCues(settings.proba_mismatch)
 
     if settings.cues or settings.gratings:
-        gc.zeroPump()
-        GameLogic.Object['WallTouchTicksCounter']=None
-        GameLogic.Object['RewardTicksCounter'] = None
+        # gc.zeroPump()
+        # GameLogic.Object['WallTouchTicksCounter']=None
+        # GameLogic.Object['RewardTicksCounter'] = None
+        pass
 
 def startOdorCounter():
     GameLogic.Object['OdorTicksCounter'] = 0
@@ -439,10 +439,6 @@ def airpuff_loom_stop():
 
     
 def airpuff(side):
-    if settings.gratings:
-        if GameLogic.Object["current_walls"]!=settings.rewarded_env:# add no false P here
-            zeroPos()
-            return
     if settings.cues:
         if GameLogic.Object["current_cues"] not in settings.rewarded_cues:
             zeroPos()
