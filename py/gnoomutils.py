@@ -685,6 +685,13 @@ def init():
             print("Replay reward times: ", GameLogic.Object['replay_rewards'])
             GameLogic.Object['nreplay'] = 0
 
+    if settings.gratings:
+        if not "grating1" in GameLogic.Object.keys():
+            GameLogic.Object["grating1"] = chooseWalls.grating(
+                ori=settings.verticalGratingAngle, sf=settings.verticalGratingScale)
+            GameLogic.Object["grating2"] = chooseWalls.grating(
+                ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
+
     if ncl.has_comedi:
         print("BLENDER: Found comedi library")
         gOuttrigsubdev = 2
