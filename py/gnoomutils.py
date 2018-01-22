@@ -179,7 +179,8 @@ def reward_linear(pumppy, controller):
                             give_reward = GameLogic.Object["current_walls"] == settings.rewarded_env
                         else:
                             give_reward = True
-                        gc.runPump(pumppy, reward=give_reward, buzz=settings.reward_buzz)
+                        if settings.replay_track is None:
+                            gc.runPump(pumppy, reward=give_reward, buzz=settings.reward_buzz)
                         GameLogic.Object['rewcount'] += 1
                         reward_success = True
                         #Matthias 2016/02/15
@@ -191,7 +192,8 @@ def reward_linear(pumppy, controller):
                         reward_success = False
                         GameLogic.Object['rewfail'] += 1
 
-                    gio.write_reward(newy, reward_success)
+                    if settings.replay_track is None:
+                        gio.write_reward(newy, reward_success)
                 else:
                     sys.stdout.write('WallTouchTicksCounter is not None\n')
             GameLogic.Object['RewardTicksCounter'] += 1
@@ -547,6 +549,15 @@ def move_player(move):
         if GameLogic.Object['nreplay'] >= len(GameLogic.Object['replay_pos'][0]):
             print("BLENDER: Reached end of replay track; starting over")
             GameLogic.Object['nreplay'] = 0
+        if GameLogic.Object['nreplay'] == 0:
+            GameLogic.Object['replay_time0'] = time.time()
+            GameLogic.Object['nreplay_rewards'] = 0
+        if time.time()-GameLogic.Object['replay_time0'] >= \
+            GameLogic.Object['replay_rewards'][GameLogic.Object['nreplay_rewards']]:
+            print("BLENDER: Delivering replay reward no {0}".format(
+                GameLogic.Object['nreplay_rewards']))
+            GameLogic.Object['nreplay_rewards'] += 1
+            gc.runPump(GameLogic.Object['pumppy'], reward=True, buzz=settings.reward_buzz)
         newposx = GameLogic.Object['replay_pos'][0][GameLogic.Object['nreplay']]
         newposy = GameLogic.Object['replay_pos'][1][GameLogic.Object['nreplay']]
         newposz = GameLogic.Object['replay_pos'][2][GameLogic.Object['nreplay']]
@@ -660,6 +671,18 @@ def init():
             import training
             print("BLENDER: Reading replay track from " + fn_pos)
             GameLogic.Object['replay_pos'] = training.read_pos(fn_pos, 1e9, False)
+            posy = GameLogic.Object['replay_pos'][1]
+            evlist, timeev = training.read_events(
+                settings.replay_track + ".events", teleport_times=None)
+            GameLogic.Object['replay_rewards'] = np.array([
+                ev.time for ev in evlist if ev.evcode == b'RE'])
+            GameLogic.Object['replay_rewards'] = np.sort(GameLogic.Object['replay_rewards'])
+            if settings.replay_rewards_shuffle:
+                intervals = np.diff([0] + GameLogic.Object['replay_rewards'].tolist())
+                intervals = np.random.permutation(intervals)
+                print(intervals)
+                GameLogic.Object['replay_rewards'] = np.cumsum(intervals)
+            print("Replay reward times: ", GameLogic.Object['replay_rewards'])
             GameLogic.Object['nreplay'] = 0
 
     if ncl.has_comedi:
