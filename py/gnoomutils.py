@@ -662,6 +662,13 @@ def init():
             GameLogic.Object['replay_pos'] = training.read_pos(fn_pos, 1e9, False)
             GameLogic.Object['nreplay'] = 0
 
+    if settings.gratings:
+        if not "grating1" in GameLogic.Object.keys():
+            GameLogic.Object["grating1"] = chooseWalls.grating(
+                ori=settings.verticalGratingAngle, sf=settings.verticalGratingScale)
+            GameLogic.Object["grating2"] = chooseWalls.grating(
+                ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
+
     if ncl.has_comedi:
         print("BLENDER: Found comedi library")
         gOuttrigsubdev = 2
