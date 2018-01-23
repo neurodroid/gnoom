@@ -552,7 +552,8 @@ def move_player(move):
         if GameLogic.Object['nreplay'] == 0:
             GameLogic.Object['replay_time0'] = time.time()
             GameLogic.Object['nreplay_rewards'] = 0
-        if time.time()-GameLogic.Object['replay_time0'] >= \
+        if GameLogic.Object['nreplay_rewards'] < len(GameLogic.Object['replay_rewards']) and \
+            time.time()-GameLogic.Object['replay_time0'] >= \
             GameLogic.Object['replay_rewards'][GameLogic.Object['nreplay_rewards']]:
             print("BLENDER: Delivering replay reward no {0}".format(
                 GameLogic.Object['nreplay_rewards']))
