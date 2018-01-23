@@ -671,7 +671,8 @@ def init():
             sys.path.append(os.path.expanduser("~/../cs/py2p/tools"))
             import training
             print("BLENDER: Reading replay track from " + fn_pos)
-            GameLogic.Object['replay_pos'] = training.read_pos(fn_pos, 1e9, False)
+            GameLogic.Object['replay_pos'] = training.read_pos(
+                fn_pos, 1e9, False, meters=False)
             posy = GameLogic.Object['replay_pos'][1]
             evlist, timeev = training.read_events(
                 settings.replay_track + ".events", teleport_times=None)
