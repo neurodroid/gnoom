@@ -231,6 +231,7 @@ def read_licksensor_piezo():
         elif GameLogic.Object['piezoframepause'] < 10:
             GameLogic.Object['piezoframepause'] += 1
         else:
+            # End of a lick period
             if GameLogic.Object['piezolicks'] != 0:
                 sys.stdout.write('BLENDER: Lick period detected:\n')
                 sys.stdout.write(

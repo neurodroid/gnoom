@@ -37,9 +37,13 @@ static const int olf2pin = 8;
 static const int olf3pin = 10;
 static const int bcpin = 4;
 /* static const int epin = 12; */
+
+static const int piezopin = A0;
+
 static const int BAUDRATE = 19200;
 int bcstatus = LOW;
 int lickcounter = 0;
+int lickpiezosum = 0;
 int lickstatus = LOW;
 int prevstatus = LOW;
 
@@ -61,6 +65,9 @@ void setup()   {
   pinMode(olf3pin, OUTPUT);
 
   pinMode(lickpin, INPUT);
+
+  pinMode(piezopin, INPUT);
+ 
   Serial.write('\n');
 }
 
@@ -73,6 +80,7 @@ void loop()
       lickcounter += 1;
   }
   prevstatus = lickstatus;
+  lickpiezosum += analogRead(piezopin);
   // Wait for request before doing stuff:
   if ( Serial.available()) {
     char ch = Serial.read();
@@ -116,9 +124,17 @@ void loop()
       }
       case 'w': {
         // transmit lick pin status:
+        Serial.println(lickcounter);
         Serial.write(lickcounter);
         Serial.write('\n');
         lickcounter = 0;
+        break;
+      }
+      case 'a': {
+        // transmit lick pin status:
+        Serial.write(lickpiezosum);
+        Serial.write('\n');
+        lickpiezosum = 0;
         break;
       }
       case '5':
