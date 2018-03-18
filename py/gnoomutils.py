@@ -559,6 +559,7 @@ def move_player(move):
                 GameLogic.Object['nreplay_rewards']))
             GameLogic.Object['nreplay_rewards'] += 1
             gc.runPump(GameLogic.Object['pumppy'], reward=True, buzz=settings.reward_buzz)
+            gio.write_reward(currentpos[1], reward_success)
         newposx = GameLogic.Object['replay_pos'][0][GameLogic.Object['nreplay']]
         newposy = GameLogic.Object['replay_pos'][1][GameLogic.Object['nreplay']]
         newposz = GameLogic.Object['replay_pos'][2][GameLogic.Object['nreplay']]
