@@ -35,56 +35,12 @@ xmax = 10.0
 ymax = 160.0
 
 
-# returns the area index corresponding to the coords:
-def coordsToIndex(x,y):
-    x += xmax
-    y += ymax
-    return int(int(x/xmax*2.0) + 4.0 * int(y/ymax*2.0))
-
-# get boundaries for an area index:
-def indexToBounds(index):
-    x = np.remainder(index,4) * xmax/2.0
-    y = int(index/4.0) * ymax/2.0
-
-    return [x-xmax, x-xmax+xmax/2.0], [y-ymax, y-ymax+ymax/2.0]
-
 # converts seconds to a formatted string (hh:mm:ss)
 def time2str(sec):
     nhs = int(sec/3600)
     nminutes = sec/60 - nhs*60
     nsecs = sec%60
     return ("%02d:%02d:%02d" % (nhs, nminutes, nsecs))
-
-# get new coordinates in a poorly visited area:
-def newCoords():
-    min = GameLogic.Object['visits'].min()
-    minIndices = np.where(GameLogic.Object['visits']==min)[0]
-
-    # pick out of least visited areas:
-    minIndex = np.random.random_integers(0,len(minIndices)-1)
-    minArea = minIndices[minIndex]
-
-    # get boundaries for this index:
-    xbound, ybound = indexToBounds(minArea)
-    limitx = GameLogic.Object['boundx'] - (GameLogic.Object['hysteresis'])
-    limity = GameLogic.Object['boundy'] - (GameLogic.Object['hysteresis'])
-
-    if xbound[0] < -limitx:
-        xbound[0] = -limitx
-    if xbound[1] > limitx:
-        xbound[1] = limitx
-    if ybound[0] < -limity:
-        ybound[0] = -limity
-    if ybound[1] > limity:
-        ybound[1] = limity
-    newx = np.random.uniform(*xbound)
-    newy = np.random.uniform(*ybound)
-    # check
-    actArea = coordsToIndex(newx,newy)
-
-    return newx, newy
-
-
 
 def gain_mode(gmode):
     GameLogic.Object["gain_mode"] = gmode
@@ -99,66 +55,12 @@ def reward_central():
     # get controller
     controller = GameLogic.getCurrentController()
    
-    if settings.linear:
-        if not settings.cues:
-            if settings.reward_double:
-                reward_linear_double(pumppy, controller)
-            elif settings.reward_cpp:
-                reward_cpp(pumppy, controller)
-            else:
-                reward_linear(pumppy, controller)
-        else:
-            if GameLogic.Object["current_cues"] in settings.rewarded_cues:
-                #print("ok")
-                reward_linear(pumppy, controller)                
+    if not settings.cues:
+        reward_linear(pumppy, controller)
     else:
-        reward_2d(pumppy, controller)
-
-
-def reward_linear_double(pumppy, controller):
-
-    scene = GameLogic.getCurrentScene()
-    if scene.name == "Scene":
-        teleportName = 'Cylinder.003'
-    else:
-        teleportName = 'Cylinder.000'
-
-    if not 'SReward' in controller.sensors:
-        return
-    radar = controller.sensors['SReward']
-    reward = radar.hitObject
-    if reward is None:
-        return
-    if reward.name == teleportName:
-        # This is not a reward in this case but a teleport detector
-        if GameLogic.Object['RewardTicksCounter'] is not None:
-            if GameLogic.Object['RewardTicksCounter'] == settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post:
-                zeroPos()
-                GameLogic.Object['RewardTicksCounter'] += 1
-            elif GameLogic.Object['RewardTicksCounter'] >= settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post + 1:
-                GameLogic.Object['RewardTicksCounter'] = None
-                GameLogic.Object['WallTouchTicksCounter'] = None
-            else:
-                # Still touching pump but not long enough yet
-                GameLogic.Object['RewardTicksCounter'] += 1
-        else:
-            # First reward touch, buzz and start counter
-            GameLogic.Object['RewardTicksCounter'] = 0
-            
-        return
-            
-    # Move to fantasy land to avoid multiple rewards:
-    oldy = reward.localPosition[1]
-    reward.localPosition = [0,1000.0,reward.position[2]]
-    if reward.name[-1] == GameLogic.Object['select_rew']:
-        gc.runPump(pumppy, reward=True, buzz=settings.reward_buzz)
-        GameLogic.Object['rewcount'] += 1
-        reward_success = True
-    else:    
-        reward_success = False
-        GameLogic.Object['rewfail'] += 1
-
-    gio.write_reward(oldy, reward_success)
+        if GameLogic.Object["current_cues"] in settings.rewarded_cues:
+            #print("ok")
+            reward_linear(pumppy, controller)                
 
 def reward_linear(pumppy, controller):
     
@@ -223,64 +125,6 @@ def reward_linear(pumppy, controller):
         GameLogic.Object['RewardTicksCounter'] = 0
         # CSH 2013-11-19 Muted pump
         gc.runPump(pumppy, reward=False, buzz=False)
-
-# added by Huayi 24/03/14 
-def reward_cpp(pumppy, controller):
-    
-    scene = GameLogic.getCurrentScene()
-    if scene.name == "Scene":
-        teleportName = 'Cylinder.003'
-    else:
-        teleportName = 'Cylinder.000'
-    
-    if not 'SReward' in controller.sensors:
-        return
-    radar = controller.sensors['SReward']
-    reward = radar.hitObject
-    if reward is None:
-        return
-    if reward.name == teleportName:
-        # This is not a reward in this case but a teleport detector
-        if GameLogic.Object['RewardTicksCounter'] is not None:
-            if GameLogic.Object['RewardTicksCounter'] == settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post:
-                zeroPos()
-                GameLogic.Object['RewardTicksCounter'] += 1
-            elif GameLogic.Object['RewardTicksCounter'] >= settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post + 1:
-                GameLogic.Object['RewardTicksCounter'] = None
-                GameLogic.Object['WallTouchTicksCounter'] = None
-            else:
-                # Still touching pump but not long enough yet
-                GameLogic.Object['RewardTicksCounter'] += 1
-        else:
-            # First reward touch, buzz and start counter
-            GameLogic.Object['RewardTicksCounter'] = 0
-            
-        return
-            
-    # Move to fantasy land to avoid multiple rewards:
-    oldy = reward.localPosition[1]
-    reward.localPosition = [0,1000.0,reward.position[2]]
-    gc.runPump(pumppy, reward=True, buzz=settings.reward_buzz)
-    GameLogic.Object['rewcount'] += 1
-    reward_success = True
-
-    gio.write_reward(oldy, reward_success)
- 
-        
-def reward_2d(pumppy, controller):
-    if not 'SReward' in controller.sensors:
-        return
-    radar = controller.sensors['SReward']
-    reward = radar.hitObject
-
-    if reward is not None:
-        gc.runPump(pumppy, buzz=settings.reward_buzz)
-        nrew = len(GameLogic.Object['rewpos'])
-        GameLogic.Object['rewcount'] += 1
-        newx, newy = 0, GameLogic.Object['rewpos'][np.mod(GameLogic.Object['rewcount'],nrew)] * 145.0 # newCoords()
-        reward.localPosition = [newx,newy,reward.position[2]]
-							
-        gio.write_reward(newy)
 
 def zeroPos():
     # controller = GameLogic.getCurrentController()
@@ -347,41 +191,18 @@ def zeroPos():
     else:
         euler = mu.Euler(0, 0, 0)
     own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
-    if settings.linear and not settings.looming:
+    if not settings.looming:
         startOdorCounter()
         if settings.replay_track is None:
             own.localPosition = [0, settings.startPos, 1.5] # y was +80
-        if settings.reward_double:
+
+        rew2 = scene.objects[rew2Name]
+        rew3 = scene.objects[rew3Name]
             
-            # Randomly select one of the 2 rewards:
-            GameLogic.Object['select_rew'] = "%s" % (np.random.randint(2)+1)
+        rew2.localPosition = [0, 1000, rew2.position[2]]
+        rew3.localPosition = [0, 1000, rew3.position[2]]
             
-            # Distribute rewards with at least 20 units distance between the 2:
-            rew1 = scene.objects[rew1Name]
-            rew2 = scene.objects[rew2Name]
-            new_rew_y = np.random.uniform(20.0, 120.0, 2)
-            while np.diff(new_rew_y)[0] < 20.0:
-                new_rew_y = np.random.uniform(20.0, 120.0, 2)
-            rew1.localPosition = [0, new_rew_y[0], rew1.position[2]]
-            rew2.localPosition = [0, new_rew_y[1], rew2.position[2]]
-    
-        elif settings.reward_cpp: 
-            rew1 = scene.objects[rew1Name]
-            rew2 = scene.objects[rew2Name]
-            
-            rew1.localPosition = [0, 60, rew1.position[2]]
-            rew2.localPosition = [200, 0, rew2.position[2]]
-        else:
-            rew2 = scene.objects[rew2Name]
-            rew3 = scene.objects[rew3Name]
-            
-            rew2.localPosition = [0, 1000, rew2.position[2]]
-            rew3.localPosition = [0, 1000, rew3.position[2]]
-            
-    elif not settings.looming:
-        if settings.replay_track is None:
-            own.localPosition = [0, -150, 1.5]
-    else:
+     else:
         if settings.replay_track is None:
             own.localPosition = [0, 0, 0]
 
@@ -490,7 +311,7 @@ def airpuff(side):
         GameLogic.Object['event_file'].write(ev_code)
         GameLogic.Object['event_file'].flush()
 
-    if settings.linear and side=='left':
+    if side=='left':
         if GameLogic.Object['WallTouchTicksCounter'] is not None:
             if GameLogic.Object['WallTouchTicksCounter'] == settings.airpuff_delay_ticks:
                 if apply_puff:
@@ -505,18 +326,6 @@ def airpuff(side):
                 GameLogic.Object['WallTouchTicksCounter'] += 1
         else:
             GameLogic.Object['WallTouchTicksCounter'] = 0
-
-
-    
-def adjust_webcam():
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Exposure, Auto Priority', '0'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Exposure, Auto',          '1'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Exposure (Absolute)',   '300'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Focus',                 '100'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Gain',                  '200'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Contrast',               '64'])
-    subprocess.Popen(['/usr/bin/uvcdynctrl', '--set', 'Brightness',            '162'])
-    print("BLENDER: Adjusted webcam")
 
 
 # correct position upon collision with boundary wall
@@ -607,16 +416,6 @@ def move_player(move):
 
     act_ytranslate.dLoc = [0.0, ytranslate, 0.0]
     act_ytranslate.useLocalDLoc = True
-    # set the values
-    if not settings.linear:
-        act_xtranslate.dLoc = [xtranslate, 0.0, 0.0]
-        act_xtranslate.useLocalDLoc = True
-        act_zrotate.dRot = [0.0, 0.0, zrotate]
-        act_zrotate.useLocalDRot = False
-
-        # Use the actuators 
-        controller.activate(act_xtranslate)
-        controller.activate(act_zrotate)
 
     if not settings.looming:
         controller.activate(act_ytranslate)
@@ -758,10 +557,7 @@ def init():
     GameLogic.Object['isloom'] = 0
     GameLogic.Object['loomcounter']=0
     GameLogic.Object['loom_first_trial']=0
-    if settings.linear:
-        GameLogic.Object['rewpos'] = [0.98] # 1.0 # np.zeros((16))
-    else:
-        GameLogic.Object['rewpos'] = [-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25, 0.0, -0.25, -0.5, -0.75, -1.0] # 1.0 # np.zeros((16))
+    GameLogic.Object['rewpos'] = [0.98] # 1.0 # np.zeros((16))
     GameLogic.Object['boundx'] =   8.0
     GameLogic.Object['boundy'] = 158.0
     GameLogic.Object['hysteresis'] = 0.5
@@ -808,19 +604,6 @@ def init():
         else:    
             s1, conn1, addr1, p1, s2, conn2, add2, p2 = \
                 None, None, None, None, None, None, None, None
-
-    if settings.has_webcam:
-        sys.stdout.write("BLENDER: Starting webcam... ")
-        sys.stdout.flush()
-        if not settings.cpp:
-            svid, connvid, addrvid, pvid = gc.spawn_process("\0vidsocket", ['python3 %s/py/webcam.py' % blenderpath,], shell=True)
-        else:
-            svid, connvid, addrvid, pvid = gc.spawn_process("\0vidsocket", ['%s/cpp/webcam/webcam' % blenderpath,], system=False)
-        print ("done")
-        connvid.send(GameLogic.Object['day_dir'].encode('latin-1'))
-        gc.recv_ready(connvid)
-        connvid.setblocking(0)
-        GameLogic.Object['vidconn'] = connvid
 
     if settings.has_fw:
         if not settings.fw_local:
@@ -911,12 +694,9 @@ def init():
     rew_sensor = scene.objects[playerName]
     touch_sensor = scene.objects[legName]
     
-    if settings.linear:
-        rew_sensor.sensors['SReward'].usePosPulseMode = True
-        touch_sensor.sensors['SLeftTouch'].usePosPulseMode = True
-    else:
-        rew_sensor.sensors['SReward'].usePosPulseMode = False
-        touch_sensor.sensors['SLeftTouch'].usePosPulseMode = False
+    rew_sensor.sensors['SReward'].usePosPulseMode = True
+    touch_sensor.sensors['SLeftTouch'].usePosPulseMode = True
+
     GameLogic.Object['scene_changed'] = 0
     GameLogic.Object['scene_name'] = scene.name
 
