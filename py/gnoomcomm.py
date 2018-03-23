@@ -243,7 +243,7 @@ def read_licksensor_piezo():
             
             
 def zeroPump():
-    if not settings.looming:
+    if not settings.reward_mode == "zone" and not settings.looming:
         scene = GameLogic.getCurrentScene()
         if scene.name == "Scene":
             rew1Name = 'Cylinder.001'

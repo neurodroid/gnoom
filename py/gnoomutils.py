@@ -54,13 +54,66 @@ def reward_central():
         
     # get controller
     controller = GameLogic.getCurrentController()
-   
-    if not settings.cues:
+    if settings.reward_mode == "zone":
+        reward_zone(pumppy, controller)
+    elif not settings.cues:
         reward_linear(pumppy, controller)
     else:
         if GameLogic.Object["current_cues"] in settings.rewarded_cues:
             #print("ok")
             reward_linear(pumppy, controller)                
+
+def reward_zone(pumppy, controller):
+    if GameLogic.Object['RewardTicksCounter'] is not None:
+        if GameLogic.Object['RewardTicksCounter'] == settings.reward_delay_ticks_pre and \
+            not GameLogic.Object['RewardChange']:
+            rand = np.random.uniform(0,1)
+            if rand <= settings.reward_probability:
+                if settings.gratings:
+                    give_reward = GameLogic.Object["current_walls"] == settings.rewarded_env
+                else:
+                    give_reward = True
+                if settings.replay_track is None:
+                    gc.runPump(pumppy, reward=give_reward, buzz=settings.reward_buzz)
+                GameLogic.Object['rewcount'] += 1
+                reward_success = True
+                #Matthias 2016/02/15
+                if settings.reward_delay_ticks_pre <= settings.reward_change_max:
+                    settings.reward_delay_ticks_pre += settings.reward_change_step
+                    print('\n{}'.format(settings.reward_delay_ticks_pre))
+                    GameLogic.Object['RewardChange'] = True
+            else:
+                reward_success = False
+                GameLogic.Object['rewfail'] += 1
+
+            if settings.replay_track is None:
+                gio.write_reward(settings.reward_zone_start, reward_success)
+            GameLogic.Object['RewardTicksCounter'] += 1
+
+        elif GameLogic.Object['RewardTicksCounter'] == \
+            settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post:
+            # Return animal with delay after reward
+            GameLogic.Object['RewardChange'] = False
+            GameLogic.Object['RewardTicksCounter'] += 1
+            zeroPos()
+
+        elif GameLogic.Object['RewardTicksCounter'] >= \
+            settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post + 1:
+            # Reward was just given, animal is back at beginning of track,
+            # so it's now safe to return the pump
+            gc.zeroPump()
+            GameLogic.Object['RewardChange'] = False
+            GameLogic.Object['RewardTicksCounter'] = None
+            GameLogic.Object['WallTouchTicksCounter'] = None
+        else:
+            # Still touching pump but not long enough yet
+            GameLogic.Object['RewardTicksCounter'] += 1
+    else:
+        # Entering reward zone
+        sys.stdout.write("BLENDER: Entering reward zone\n")
+        GameLogic.Object['RewardTicksCounter'] = 0
+        # Could be used to buzz when entering the reward zone, currently disabled
+        gc.runPump(pumppy, reward=False, buzz=False)
 
 def reward_linear(pumppy, controller):
     
@@ -150,10 +203,6 @@ def zeroPos():
         
     if init and settings.gratings : 
         # Romain   
-        # make some objects disappear
-        objectsToRemove=[] # put the object name into quotes exple : ["name1","name2"]
-        for i in objectsToRemove:
-            scene.objects[i].visible=False
         # set normal walls to invisible
         for i in scene.objects:
             if i.name[:8]=="LeftWall" or i.name[:9]=="RightWall": 
@@ -198,11 +247,20 @@ def zeroPos():
 
         rew2 = scene.objects[rew2Name]
         rew3 = scene.objects[rew3Name]
-            
+
         rew2.localPosition = [0, 1000, rew2.position[2]]
         rew3.localPosition = [0, 1000, rew3.position[2]]
-            
-     else:
+        if settings.reward_mode == "zone":
+            assert(settings.reward_zone_end > settings.reward_zone_start)
+            assert(settings.teleport_trigger_pos > settings.reward_zone_end)
+            assert(settings.end_wall_pos > settings.teleport_trigger_pos)
+            rew1 = scene.objects[rew1Name]
+            rew1.localPosition = [0, 1000, rew1.position[2]]
+            end_wall_pos_old = scene.objects['FrontWall.004'].localPosition
+            scene.objects['FrontWall.004'].localPosition = [
+                end_wall_pos_old[0], settings.end_wall_pos, end_wall_pos_old[2]]
+
+    else:
         if settings.replay_track is None:
             own.localPosition = [0, 0, 0]
 
@@ -341,12 +399,20 @@ def collision():
     ypos = pos[1]
     zpos = pos[2]
 
-    if np.fabs(xpos) > GameLogic.Object['boundx']:
-        xpos = np.sign(xpos)*GameLogic.Object['boundx']
-        own.localPosition = [xpos, ypos, zpos]
+    if settings.reward_mode == "zone":
+        if ypos >= settings.reward_zone_start and ypos < settings.reward_zone_end:
+            reward_central()
+        else:
+            GameLogic.Object['RewardTicksCounter'] = None
+        if ypos >= settings.teleport_trigger_pos:
+            zeroPos()
+    else:
+        if np.fabs(xpos) > GameLogic.Object['boundx']:
+            xpos = np.sign(xpos)*GameLogic.Object['boundx']
+            own.localPosition = [xpos, ypos, zpos]
 
-    if np.fabs(ypos) > GameLogic.Object['boundy']:
-        own.localPosition = [xpos, np.sign(ypos)*GameLogic.Object['boundy'], zpos]
+        if np.fabs(ypos) > GameLogic.Object['boundy']:
+            own.localPosition = [xpos, np.sign(ypos)*GameLogic.Object['boundy'], zpos]
 
 def move_player(move):
 
