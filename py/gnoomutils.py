@@ -692,6 +692,21 @@ def init():
 
     GameLogic.Object['has_fw'] = settings.has_fw
 
+    if settings.has_usb3:
+        sys.stdout.write("BLENDER: Starting usb3... ")
+        sys.stdout.flush()
+        susb3, connusb3, addrusb3, pusb3 = \
+            gc.spawn_process("\0usb3socket", ['%s/cpp/usb3/arv-camera-test' % blenderpath,], #MC2015
+                          system=False, addenv={"SDL_VIDEO_WINDOW_POS":"\"1280,480\""})
+        print("done")
+
+        connusb3.send(GameLogic.Object['fw_trunk'].encode('latin-1'))
+        gc.recv_ready(connusb3)
+        connusb3.setblocking(0)
+        GameLogic.Object['usb3conn'] = connusb3
+
+    GameLogic.Object['has_usb3'] = settings.has_usb3
+    
     if settings.has_comedi and ncl.has_comedi:
         scomedi, conncomedi, addrcomedi, pcomedi = \
             gc.spawn_process("\0comedisocket", ['python3', '%s/py/nicomedi.py' % blenderpath,])

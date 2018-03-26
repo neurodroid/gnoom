@@ -3,6 +3,7 @@
 import bge.logic as GameLogic
 import time
 import sys
+import os
 import socket
 import subprocess
 import numpy as np
