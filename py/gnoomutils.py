@@ -209,16 +209,21 @@ def zeroPos():
                 i.visible=False
     if init and not settings.gratings :
         try:
-            for i in ["LW1", "RW1", "CeilingGrating"]:
-                scene.objects[i].visible=False
+            for objkey in ["LW1", "RW1", "CeilingGrating"]:
+               scene.objects[objkey].visible=False
         except KeyError:
-            sys.stderr.write("BLENDER: Warning: Grating walls are missing")
+            sys.stderr.write("BLENDER: Warning: Grating walls are missing\n")
     if init and not settings.cues:
         try:
-            for i in settings.objects_cues:
-                scene.objects[i].visible=False
+            for objkey in settings.objects_cues:
+                try:
+                    scene.objects[objkey].visible=False
+                except KeyError:
+                    sys.stderr.write(
+                        "BLENDER: Warning: {0} is missing\n".format(objkey))
+                    
         except AttributeError:
-            sys.stderr.write("BLENDER: Warning: Cues are missing")
+            sys.stderr.write("BLENDER: Warning: Cues are missing\n")
     GameLogic.Object["last_zero"]=0
 
     if scene.name == "Scene":
