@@ -31,6 +31,8 @@ static double arv_option_software_trigger = -1;
 static double arv_option_frequency = -1.0;
 static int arv_option_width = -1;
 static int arv_option_height = -1;
+static int arv_option_xoff = -1;
+static int arv_option_yoff = -1;
 static int arv_option_horizontal_binning = -1;
 static int arv_option_vertical_binning = -1;
 static double arv_option_exposure_time_us = -1;
@@ -507,7 +509,7 @@ main (int argc, char **argv)
 		}
 
 		arv_camera_set_chunks (data.camera, arv_option_chunks);
-		arv_camera_set_region (data.camera, 0, 0, arv_option_width, arv_option_height);
+		arv_camera_set_region (data.camera, arv_option_xoff, arv_option_yoff, arv_option_width, arv_option_height);
 		arv_camera_set_binning (data.camera, arv_option_horizontal_binning, arv_option_vertical_binning);
 		arv_camera_set_exposure_time (data.camera, arv_option_exposure_time_us);
 		arv_camera_set_gain (data.camera, arv_option_gain);
@@ -534,6 +536,8 @@ main (int argc, char **argv)
 		printf ("USB3: vendor name           = %s\n", arv_camera_get_vendor_name (data.camera));
 		printf ("USB3: model name            = %s\n", arv_camera_get_model_name (data.camera));
 		printf ("USB3: device id             = %s\n", arv_camera_get_device_id (data.camera));
+		printf ("USB3: image x offset        = %d\n", x);
+		printf ("USB3: image y offset        = %d\n", y);
 		printf ("USB3: image width           = %d\n", data.width);
 		printf ("USB3: image height          = %d\n", data.height);
 		printf ("USB3: horizontal binning    = %d\n", dx);
