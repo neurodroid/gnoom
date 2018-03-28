@@ -314,12 +314,15 @@ def start_training_file():
     fn = get_next_trainname("move")
     fn_events = fn[:-4] + "events"
     fn_pos = fn[:-4] + "position"
+    fn_t0 = fn[:-4] + "t0"
+    
     sys.stdout.write("BLENDER: Writing training to:\n") 
     sys.stdout.write("         %s\n" % fn)
     sys.stdout.write("         %s\n" % fn_events)
     GameLogic.Object['train_file'] = open(fn, 'wb')
     GameLogic.Object['event_file'] = open(fn_events, 'wb')
     GameLogic.Object['pos_file'] = open(fn_pos, 'wb')
+
     if settings.looming:
         GameLogic.Object['current_loomfile'] = open(
             fn[:-5] + "_loom", 'wb')
@@ -336,6 +339,10 @@ def start_training_file():
 
     GameLogic.Object['train_tstart'] = time.time()
     GameLogic.Object['train_open'] = True
+
+    t0file = open(fn_t0, "wb")
+    t0file.write(np.array([GameLogic.Object['train_tstart']], dtype=np.float64))
+    t0file.close()
 
     # Copy current settings:
     fn_settings_py = fn[:-4] + "_settings.py"
