@@ -21,7 +21,7 @@
 
 static const int BUFSIZE = 4096;
 static const double BILLION = 1000000000L;
-static const char* trunk = "/media/DriveStation/";
+static const char* trunk = "";
 static const double TIMEOUT = 2.0;
 static char *arv_option_camera_name = NULL;
 static char *arv_option_debug_domains = NULL;
@@ -239,7 +239,7 @@ keep_conn_cb(void *abstract_data) {
             std::size_t startpos = datastr.find("begin")+5;
             std::size_t endpos = datastr.find("end") - datastr.find("begin") - 5; 
             std::string fn = datastr.substr(startpos, endpos);
-            fn = std::string(trunk) + "data/" + fn;
+            fn = std::string(trunk) + fn;
             boost::filesystem::path path(fn);
             boost::filesystem::path writepath(path);
 
