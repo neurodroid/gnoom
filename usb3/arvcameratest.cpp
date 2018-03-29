@@ -323,7 +323,7 @@ periodic_task_cb (void *abstract_data)
 	  cancel = TRUE;
 	}
 
-	printf ("USB3: Frame rate = %d Hz\n", data->buffer_count);
+	printf ("USB3: Frame rate = %d Hz\r", data->buffer_count);
 	data->buffer_count = 0;
 	
 	if (cancel) {
