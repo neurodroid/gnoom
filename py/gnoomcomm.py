@@ -258,7 +258,11 @@ def runPump(pumppy, reward=True, buzz=True):
         try:
             if reward:
                 sys.stdout.write("BLENDER: Running reward pump\n")
+                tpump0 = time.time()
                 pumppy.write(b"RUN\r")
+                if time.time()-tpump0 > 0.01:
+                    sys.stdout.write("BLENDER: Took {0:.3f}s to run pump\n".format(
+                       (time.time()-tpump0)))
             if buzz:
                 pumppy.write(b"BUZ 1 2\r")
         except:
