@@ -21,7 +21,7 @@
 
 static const int BUFSIZE = 4096;
 static const double BILLION = 1000000000L;
-static const char* trunk = "";
+static const char* trunk = "/media/DriveStation/data/";
 static const double TIMEOUT = 2.0;
 static char *arv_option_camera_name = NULL;
 static char *arv_option_debug_domains = NULL;
