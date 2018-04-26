@@ -78,9 +78,10 @@ void loop()
   lickstatus = digitalRead(lickpin);
   if (lickstatus==HIGH && prevstatus==LOW) {
       lickcounter += 1;
+      //Serial.println(lickcounter);
   }
   prevstatus = lickstatus;
-  lickpiezosum += analogRead(piezopin);
+  // lickpiezosum += analogRead(piezopin);
   // Wait for request before doing stuff:
   if ( Serial.available()) {
     char ch = Serial.read();
@@ -124,7 +125,7 @@ void loop()
       }
       case 'w': {
         // transmit lick pin status:
-        Serial.println(lickcounter);
+        //Serial.println(lickcounter);
         Serial.write(lickcounter);
         Serial.write('\n');
         lickcounter = 0;
