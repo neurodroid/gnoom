@@ -499,20 +499,160 @@ def move_player(move):
         
     return xtranslate, ytranslate, zrotate
 
-
 def looming():
-    init_scale_up = [1.5, 1, 0]
-    init_scale_down = [2, 1, 0]
+    baseSize=20.0
+    init_scale_up = [baseSize, baseSize, baseSize]
+    init_scale_down = [baseSize, baseSize, baseSize]
     fin_scale = [0, 0, 0]
-    speedscale = 1.0
-    xuprescale = (2.34)*speedscale 
-    yuprescale = (1.56)*speedscale 
-    xdownrescale = (1.92)*speedscale 
-    ydownrescale = (0.96)*speedscale
-    positions = np.array([(-10, 50, 90), (-10, 50, -15)])
+    speedscale = 2.0
+    # SCALE WITH Z
+    upDownRat=1.2
+    xuprescale = ((1)*speedscale)/upDownRat 
+    yuprescale = ((1)*speedscale)/upDownRat
+    zuprescale = ((.3)*speedscale)/upDownRat
+    xdownrescale = (1)*speedscale 
+    ydownrescale = (1)*speedscale 
+    zdownrescale = (.45)*speedscale
+    
+    
+    screenDist=120
+    # ORIGINAL POSITIONS ----------------------------
+    #positions = np.array([(0, 50, 90), (0, 50, -15)])
+    # NEW POSITIONS
+    startDist=100
+    newDist=startDist
+    startHeight=75
+    startBack=20
+    #appSpeed=3.3
+    appSpeed=3.9
+    positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) , startHeight),
+                         (0, startDist-20.0, 0),
+                         (-startDist, -startBack, 0),
+                         (startDist, -startBack, 0)])
+    # ------------------------------------------------
     stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
 
-    circle = GameLogic.getCurrentScene().objects["Circle"]
+    circle = GameLogic.getCurrentScene().objects["LoomSphere"]
+    if (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
+        GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
+        GameLogic.Object['loom_first_trial'] += 1
+    elif (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']):
+        #print("Start looming stimulus presentation")
+        #print(GameLogic.Object['loomcounter'])
+
+        if GameLogic.Object['loomcounter'] == 0:
+            tracked_speed = np.median(np.abs(GameLogic.Object['speed_tracker']))*1e2 * GameLogic.getLogicTicRate()
+            if tracked_speed > settings.loom_speed_threshold:
+        # Start trial
+                GameLogic.Object['puffthistrial'] = random.randint(0,1)
+                if settings.isloom_random:
+                    GameLogic.Object['isloom'] = random.randint(0,1)
+                else:
+                    GameLogic.Object['isloom'] = 1
+                print("BLENDER: Looming stimulus trial starting - running detected.Puff: "+str(GameLogic.Object['puffthistrial']))
+                if settings.loom_random:
+                    rand_pos_idx = random.randint(0, positions.shape[0]-1)
+                    #rand_pos_idx = 3
+                else:
+                    rand_pos_idx = 0
+                GameLogic.Object['rand_pos_idx'] = rand_pos_idx
+                circle.worldPosition = positions[rand_pos_idx]
+                if rand_pos_idx == 0:
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = [0,0,0]#init_scale_up
+                    else:
+                         circle.localScale = fin_scale
+                elif rand_pos_idx >= 1:
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = [0,0,0]#init_scale_down
+                    else:
+                        circle.localScale = fin_scale
+                GameLogic.Object['loomcounter'] += 1
+                    
+        elif GameLogic.Object['loomcounter'] < settings.loom_grow_dur + settings.loom_maintain_dur + stop:
+            if GameLogic.Object['loomcounter'] < settings.loom_grow_dur:            
+            # Change scale during trial
+                if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
+                    # newDist=newDist-10
+                    newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
+                    newScale=(baseSize/newDist)*screenDist
+                    circle.localScale.x =(xuprescale)*newScale
+                    circle.localScale.y =(yuprescale)*newScale
+                    circle.localScale.z =(zuprescale)*newScale
+                elif (GameLogic.Object['rand_pos_idx'] == 1 and GameLogic.Object['isloom']):
+                    newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
+                    newScale=(baseSize/newDist)*screenDist
+                    circle.localScale.x =(xdownrescale)*newScale
+                    circle.localScale.y =(ydownrescale)*newScale
+                    circle.localScale.z =(zdownrescale)*newScale
+                elif (GameLogic.Object['rand_pos_idx'] >= 2 and GameLogic.Object['isloom']):
+                    # newDist=newDist-10
+                    newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
+                    newScale=(baseSize/newDist)*screenDist
+                    circle.localScale.x =(xuprescale)*newScale
+                    circle.localScale.y =(yuprescale)*newScale
+                    circle.localScale.z =(zuprescale)*newScale
+            elif GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur:
+            # Stop trial and wait
+                circle.localScale= fin_scale
+            if settings.loom_airpuff_delay is not None:
+                 if (settings.puff_random and GameLogic.Object['puffthistrial']== 1) or not settings.puff_random:
+                     if GameLogic.Object['loomcounter']%settings.puffint == settings.loom_airpuff_delay and \
+                     GameLogic.Object['puffcount'] < settings.puffnb:
+                          airpuff_loom()
+                          GameLogic.Object['puffcount']+= 1
+                     else:
+                         airpuff_loom_stop()
+                
+            GameLogic.Object['loomcounter'] += 1
+        else:
+            # Restart
+            GameLogic.Object['loomcounter'] = 0
+            GameLogic.Object['puffcount'] = 0
+    
+    else:
+        circle.localScale= fin_scale
+
+    if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
+        gio.write_looming(circle)
+
+def looming_BASE():
+ #   init_scale_up = [1.5, 1, 0]
+ #   init_scale_down = [2, 1, 0]
+    init_scale_up = [0, 0, 0]
+    init_scale_down = [0, 0, 0]
+    fin_scale = [0, 0, 0]
+    speedscale = 2.0
+    # ORIGINAL ---------------------------------
+    #xuprescale = (2.34)*speedscale 
+    #yuprescale = (1.56)*speedscale 
+    #xdownrescale = (1.92)*speedscale 
+    #ydownrescale = (0.96)*speedscale
+    # NO CHANGE --------------------------------
+    #xuprescale = (1)*speedscale 
+    #yuprescale = (1)*speedscale 
+    #xdownrescale = (1)*speedscale 
+    #ydownrescale = (1)*speedscale
+    # SCALE WITH Z
+    upDownRat=1.7
+    xuprescale = ((1)*speedscale)/upDownRat 
+    yuprescale = ((1)*speedscale)/upDownRat
+    zuprescale = ((.3)*speedscale)/upDownRat
+    xdownrescale = (1)*speedscale 
+    ydownrescale = (1)*speedscale 
+    zdownrescale = (.45)*speedscale
+    # ORIGINAL POSITIONS ----------------------------
+    #positions = np.array([(0, 50, 90), (0, 50, -15)])
+    # NEW POSITIONS
+    startDist=100
+    startHeight=75
+    positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) , startHeight), (0, startDist, 0)])
+    # ------------------------------------------------
+    stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+
+    circle = GameLogic.getCurrentScene().objects["LoomSphere"]
     if (
         GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
         GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
@@ -556,9 +696,11 @@ def looming():
                 if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
                     circle.localScale.x +=(xuprescale)
                     circle.localScale.y +=(yuprescale)
+                    circle.localScale.z +=(zuprescale)
                 elif (GameLogic.Object['rand_pos_idx'] == 1 and GameLogic.Object['isloom']):
                     circle.localScale.x +=(xdownrescale)
                     circle.localScale.y +=(ydownrescale)
+                    circle.localScale.z +=(zdownrescale)
             elif GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur:
             # Stop trial and wait
                 circle.localScale= fin_scale
@@ -582,6 +724,128 @@ def looming():
 
     if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
         gio.write_looming(circle)
+        
+# -----------------------------------------------------------------------------------------------
+# REMOVE IF DOESNT WORK -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------       
+def looming_3D():
+ #   init_scale_up = [1.5, 1, 0]
+ #   init_scale_down = [2, 1, 0]
+    init_scale_up = [25, 25, 25]
+    init_scale_down = [25, 25, 25]
+    fin_scale = [0, 0, 0]
+    speedscale = 2.0
+    # ORIGINAL ---------------------------------
+    #xuprescale = (2.34)*speedscale 
+    #yuprescale = (1.56)*speedscale 
+    #xdownrescale = (1.92)*speedscale 
+    #ydownrescale = (0.96)*speedscale
+    # NO CHANGE --------------------------------
+    #xuprescale = (1)*speedscale 
+    #yuprescale = (1)*speedscale 
+    #xdownrescale = (1)*speedscale 
+    #ydownrescale = (1)*speedscale
+    # SCALE WITH Z
+    upDownRat=1.7
+    xuprescale = ((0)*speedscale)/upDownRat 
+    yuprescale = ((0)*speedscale)/upDownRat
+    zuprescale = ((0)*speedscale)/upDownRat
+    xdownrescale = (0)*speedscale 
+    ydownrescale = (0)*speedscale 
+    zdownrescale = (0)*speedscale
+    # ORIGINAL POSITIONS ----------------------------
+    #positions = np.array([(0, 50, 90), (0, 50, -15)])
+    # NEW POSITIONS
+    startDist=100
+    startHeight=75
+    positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) , startHeight), (0, startDist, 0)])
+    # ------------------------------------------------
+    stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+
+    circle = GameLogic.getCurrentScene().objects["LoomSphere"]
+    if (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
+        GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
+        GameLogic.Object['loom_first_trial'] += 1
+    elif (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']):
+        #print("Start looming stimulus presentation")
+        #print(GameLogic.Object['loomcounter'])
+
+        if GameLogic.Object['loomcounter'] == 0:
+            tracked_speed = np.median(np.abs(GameLogic.Object['speed_tracker']))*1e2 * GameLogic.getLogicTicRate()
+            if tracked_speed > settings.loom_speed_threshold:
+        # Start trial
+                GameLogic.Object['puffthistrial'] = random.randint(0,1)
+                if settings.isloom_random:
+                    GameLogic.Object['isloom'] = random.randint(0,1)
+                else:
+                    GameLogic.Object['isloom'] = 1
+                print("BLENDER: Looming stimulus trial starting - running detected.Puff: "+str(GameLogic.Object['puffthistrial']))
+                if settings.loom_random:
+                    rand_pos_idx = random.randint(0,len(positions)-1)
+                else:
+                    rand_pos_idx = 0
+                GameLogic.Object['rand_pos_idx'] = rand_pos_idx
+                circle.worldPosition = positions[rand_pos_idx]
+                if rand_pos_idx == 0:
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = init_scale_up
+                    else:
+                         circle.localScale = fin_scale
+                elif rand_pos_idx == 1:
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = init_scale_down
+                    else:
+                        circle.localScale = fin_scale
+                GameLogic.Object['loomcounter'] += 1
+                    
+        elif GameLogic.Object['loomcounter'] < settings.loom_grow_dur + settings.loom_maintain_dur + stop:
+            if GameLogic.Object['loomcounter'] < settings.loom_grow_dur:            
+            # Change scale during trial
+                if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
+                    circle.localScale.x +=(xuprescale)
+                    circle.localScale.y +=(yuprescale)
+                    circle.localScale.z +=(zuprescale)
+                    moveDir=-.5*(circle.worldPosition / np.sum(np.sqrt(circle.worldPosition)))
+                    circle.worldPosition = [circle.worldPosition[0]+moveDir[0],
+                                            circle.worldPosition[1]+moveDir[1],
+                                            circle.worldPosition[2]+moveDir[2]]
+                elif (GameLogic.Object['rand_pos_idx'] == 1 and GameLogic.Object['isloom']):
+                    circle.localScale.x +=(xdownrescale)
+                    circle.localScale.y +=(ydownrescale)
+                    circle.localScale.z +=(zdownrescale)
+                    moveDir=-1*(circle.worldPosition / np.sum(np.sqrt(circle.worldPosition)))
+                    circle.worldPosition = [circle.worldPosition[0]+moveDir[0],
+                                            circle.worldPosition[1]+moveDir[1],
+                                            circle.worldPosition[2]+moveDir[2]]
+            elif GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur:
+            # Stop trial and wait
+                circle.localScale= fin_scale
+            if settings.loom_airpuff_delay is not None:
+                 if (settings.puff_random and GameLogic.Object['puffthistrial']== 1) or not settings.puff_random:
+                     if GameLogic.Object['loomcounter']%settings.puffint == settings.loom_airpuff_delay and \
+                     GameLogic.Object['puffcount'] < settings.puffnb:
+                          airpuff_loom()
+                          GameLogic.Object['puffcount']+= 1
+                     else:
+                         airpuff_loom_stop()
+                
+            GameLogic.Object['loomcounter'] += 1
+        else:
+            # Restart
+            GameLogic.Object['loomcounter'] = 0
+            GameLogic.Object['puffcount'] = 0
+    
+    else:
+        circle.localScale= fin_scale
+
+    if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
+        gio.write_looming(circle)
+# -----------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+        
+        
 
 def detect_scene_change():
     # scene change requested; start counting
