@@ -8,6 +8,7 @@ import shutil
 import numpy as np
 
 import settings
+import cues
 import gnoomutils as gu
 import gnoomcomm as gc
 
@@ -349,6 +350,8 @@ def start_training_file():
     blenderpath = GameLogic.expandPath('//')
     shutil.copyfile('%s/py/settings.py' % blenderpath, fn_settings_py)
 
+    cues.write_gratings(GameLogic.Object["current_walls"])
+    
     # line break for printing time:
     sys.stdout.write("\n")
 
@@ -494,6 +497,8 @@ def start_record_file():
     fn_settings_py = fn[:-4] + "_settings.py"
     blenderpath = GameLogic.expandPath('//')
     shutil.copyfile('%s/py/settings.py' % blenderpath, fn_settings_py)
+
+    cues.write_gratings(GameLogic.Object["current_walls"])
     
 def write_looming(circle):
     GameLogic.Object['current_loomfile'].write(np.array([

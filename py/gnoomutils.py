@@ -129,11 +129,10 @@ def reward_linear(pumppy, controller):
                 newy = GameLogic.Object['rewpos'][np.mod(GameLogic.Object['rewcount'],nrew)] * settings.reward_pos_linear # newCoords()
                 if GameLogic.Object['WallTouchTicksCounter'] is None:
                     rand = np.random.uniform(0,1)
+                    give_reward = True
                     if rand <= settings.reward_probability:
                         if settings.gratings:
                             give_reward = GameLogic.Object["current_walls"] == settings.rewarded_env
-                        else:
-                            give_reward = True
                         if settings.replay_track is None:
                             gc.runPump(pumppy, reward=give_reward, buzz=settings.reward_buzz)
                         GameLogic.Object['rewcount'] += 1
@@ -148,7 +147,8 @@ def reward_linear(pumppy, controller):
                         GameLogic.Object['rewfail'] += 1
 
                     if settings.replay_track is None:
-                        gio.write_reward(newy, reward_success)
+                        reward_delivered = reward_success and give_reward
+                        gio.write_reward(newy, reward_delivered)
                 else:
                     sys.stdout.write('WallTouchTicksCounter is not None\n')
             GameLogic.Object['RewardTicksCounter'] += 1
@@ -605,4 +605,3 @@ def detect_scene_change():
         GameLogic.Object['scene_changed'] = 0
     
     GameLogic.Object['scene_name'] = scene.name
-
