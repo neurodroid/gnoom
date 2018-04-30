@@ -23,8 +23,8 @@ import socket
 sys.stdout.write("Opening serial port...")
 sys.stdout.flush()
 
-if socket.gethostname() == 'dent3':
-    socketrange = range(9, -1, -1)
+if socket.gethostname() == 'dent3' or socket.gethostname() == 'dent4':
+    socketrange = range(31, -1, -1)
 else:
     socketrange = range(10)
 
