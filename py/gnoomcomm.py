@@ -219,6 +219,7 @@ def read_licksensor():
         try:
             if np.any(licks[:,1]):
                 gio.write_licks(licks)
+                sys.stdout.write('BLENDER: Licks detected\n')
         except:
             pass
 

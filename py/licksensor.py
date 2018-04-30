@@ -53,8 +53,24 @@ if __name__=="__main__":
 
     socklick, blenderpath, connected = init_socket(sockno)
 
+    if 'linux' in sys.platform:
+        arduino_port = None
+        trunk = "/dev/ttyUSB"
+        for nport in range(0,9):
+            arduino_port = "%s%i" % (trunk,nport)
+            if os.path.exists(arduino_port):
+                break
+        if not os.path.exists(arduino_port):
+            trunk = "/dev/ttyACM"
+            for nport in range(0,9):
+                arduino_port = "%s%i" % (trunk,nport)
+                if os.path.exists(arduino_port):
+                    break
+    else:
+        arduino_port = "/dev/tty.usbserial-A6006klF"
+
     try:
-        arduino = arduino_serial.SerialPort("/dev/ttyUSB0", 19200)
+        arduino = arduino_serial.SerialPort(arduino_port, 19200)
         sys.stdout.write("LICKSENSOR: Successfully opened arduino\n")
     except OSError:
         sys.stdout.write("LICKSENSOR: Failed to open arduino\n")
