@@ -184,7 +184,8 @@ def zeroPos():
     # controller = GameLogic.getCurrentController()
     # own = controller.owner
     scene = GameLogic.getCurrentScene()
-
+    GameLogic.Object["lapCounter"] += 1
+    print("Lap",  GameLogic.Object["lapCounter"])
     
     # Romain
     # avoid multiple resettings
