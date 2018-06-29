@@ -92,6 +92,9 @@ def init():
                 ori=settings.verticalGratingAngle, sf=settings.verticalGratingScale)
             GameLogic.Object["grating2"] = chooseWalls.grating(
                 ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
+        # GameLogic.Object["reward_zone_start"] = settings.reward_zone_start
+        # GameLogic.Object["reward_zone_end"] = settings.reward_zone_end
+
 #            for wallkey in ["LW1", "RW1"]:
 #                chooseWalls.set_texture_buffer(
 #                    GameLogic.Object["grating1"], wallkey)

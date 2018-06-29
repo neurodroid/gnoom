@@ -70,7 +70,14 @@ def reward_zone(pumppy, controller):
             rand = np.random.uniform(0,1)
             if rand <= settings.reward_probability:
                 if settings.gratings:
-                    give_reward = GameLogic.Object["current_walls"] == settings.rewarded_env
+                    if GameLogic.Object["current_walls"] != settings.rewarded_env:
+                        if settings.reward_zone2_start is not None and \
+                            settings.reward_zone2_end is not None:
+                            give_reward = True
+                        else:
+                            give_reward = False
+                    else:
+                        give_reward = True
                 else:
                     give_reward = True
                 if settings.replay_track is None:
@@ -87,7 +94,10 @@ def reward_zone(pumppy, controller):
                 GameLogic.Object['rewfail'] += 1
 
             if settings.replay_track is None:
-                gio.write_reward(settings.reward_zone_start, reward_success)
+                if GameLogic.Object["reward_zone_start"] is not None:
+                    gio.write_reward(GameLogic.Object["reward_zone_start"], reward_success)
+                else:
+                    gio.write_reward(settings.reward_zone_start, reward_success)
             GameLogic.Object['RewardTicksCounter'] += 1
 
         elif GameLogic.Object['RewardTicksCounter'] == \
@@ -95,16 +105,19 @@ def reward_zone(pumppy, controller):
             # Return animal with delay after reward
             GameLogic.Object['RewardChange'] = False
             GameLogic.Object['RewardTicksCounter'] += 1
-            zeroPos()
+            # we don't teleport the animal any longer - it has to get to the trigger point
+            # zeroPos()
 
         elif GameLogic.Object['RewardTicksCounter'] >= \
             settings.reward_delay_ticks_pre + settings.reward_delay_ticks_post + 1:
             # Reward was just given, animal is back at beginning of track,
             # so it's now safe to return the pump
-            gc.zeroPump()
             GameLogic.Object['RewardChange'] = False
-            GameLogic.Object['RewardTicksCounter'] = None
-            GameLogic.Object['WallTouchTicksCounter'] = None
+            # we don't teleport the animal any longer - it has to get to the trigger point
+            # GameLogic.Object['RewardTicksCounter'] = None
+            # zeroPos()
+            # gc.zeroPump()
+            # GameLogic.Object['WallTouchTicksCounter'] = None
         else:
             # Still touching pump but not long enough yet
             GameLogic.Object['RewardTicksCounter'] += 1
@@ -246,6 +259,11 @@ def zeroPos():
     else:
         euler = mu.Euler(0, 0, 0)
     own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
+
+    # Romain : randomly change wall gratings
+    if settings.gratings:
+        chooseWalls.randomWalls(settings.proba_env1)
+        
     if not settings.looming:
         startOdorCounter()
         if settings.replay_track is None:
@@ -257,7 +275,10 @@ def zeroPos():
         rew2.localPosition = [0, 1000, rew2.position[2]]
         rew3.localPosition = [0, 1000, rew3.position[2]]
         if settings.reward_mode == "zone":
-            assert(settings.reward_zone_end > settings.reward_zone_start)
+            if GameLogic.Object["reward_zone_end"] is not None and \
+                GameLogic.Object["reward_zone_start"] is not None:
+                assert(GameLogic.Object["reward_zone_end"] > 
+                    GameLogic.Object["reward_zone_start"])
             assert(settings.teleport_trigger_pos > settings.reward_zone_end)
             assert(settings.end_wall_pos > settings.teleport_trigger_pos)
             rew1 = scene.objects[rew1Name]
@@ -270,10 +291,6 @@ def zeroPos():
         if settings.replay_track is None:
             own.localPosition = [0, 0, 0]
 
-    # Romain : randomly change wall gratings
-    if settings.gratings:
-        chooseWalls.randomWalls(settings.proba_env1)
-        
     # Romain : select the pair of cues either 'randomly without replacement' settings.groups_trials = True
     # or completely randomly if settings.groups_trials = False
     if settings.cues:
@@ -292,11 +309,11 @@ def zeroPos():
         else:
             chooseCues.randomCues(settings.proba_mismatch)
 
+    
     if settings.cues or settings.gratings:
         # gc.zeroPump()
         # GameLogic.Object['WallTouchTicksCounter']=None
-        # GameLogic.Object['RewardTicksCounter'] = None
-        pass
+        GameLogic.Object['RewardTicksCounter'] = None
 
     if time.time()-tzeroPos > 0.011:
         sys.stdout.write(
@@ -411,10 +428,12 @@ def collision():
     zpos = pos[2]
 
     if settings.reward_mode == "zone":
-        if ypos >= settings.reward_zone_start and ypos < settings.reward_zone_end:
-            reward_central()
-        else:
-            GameLogic.Object['RewardTicksCounter'] = None
+        if GameLogic.Object["reward_zone_start"] is not None and \
+            GameLogic.Object["reward_zone_end"] is not None:
+            if ypos >= GameLogic.Object["reward_zone_start"] and ypos < GameLogic.Object["reward_zone_end"]:
+                reward_central()
+            # else:
+            #     GameLogic.Object['RewardTicksCounter'] = None
         if ypos >= settings.teleport_trigger_pos:
             zeroPos()
     else:
