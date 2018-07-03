@@ -514,39 +514,97 @@ def move_player(move):
     return xtranslate, ytranslate, zrotate
 
 def looming():
-    baseSize=20.0
-    init_scale_up = [baseSize, baseSize, baseSize]
-    init_scale_down = [baseSize, baseSize, baseSize]
+    
+    scene = GameLogic.getCurrentScene()
+    # Make some objects disappear
+    # All objects: 
+    objectsToRemove=["LoomSphere_Lines","LoomSphere_Chequer",
+                     "LoomSphere_Dots","LoomSphere_Lines_Concentric",
+                     "LoomSphere_Black","LoomSphere_Bright",
+                     "OuterSphere_Blank_Dark","OuterSphere_Blank_Bright","OuterSphere_Blank_Black",
+                     "OuterSphere_Lines", "OuterSphere_Chequer"] #"OuterSphere_Blank",] # put the object name into quotes exple : ["name1","name2"]
+    for obj in objectsToRemove:
+        scene.objects[obj].visible=False
+
+    circle = scene.objects[settings.objToLoom]
+    circle.visible=True  
+    outerSphere = scene.objects[settings.outerSphereType]
+    outerSphere.visible=True
+    outerSphere.worldPosition = (0,0,0)
+    # -----------------------------------------------------------
+    outerSphere.localScale=(1000,1000,1000)
+    # -----------------------------------------------------------
+    
+    
+ #   init_scale_up = [1.5, 1, 0]
+ #   init_scale_down = [2, 1, 0]
+    # ----------------------------------
+    init_scale_up = [8, 8, 8]
+    init_scale_down = [8, 8, 8]
+    # ----------------------------------
     fin_scale = [0, 0, 0]
     speedscale = 2.0
     # SCALE WITH Z
-    upDownRat=1.2
-    xuprescale = ((1)*speedscale)/upDownRat 
-    yuprescale = ((1)*speedscale)/upDownRat
-    zuprescale = ((.3)*speedscale)/upDownRat
-    xdownrescale = (1)*speedscale 
-    ydownrescale = (1)*speedscale 
-    zdownrescale = (.45)*speedscale
-    
-    
-    screenDist=120
+    upDownRat=1.7
+    xuprescale = ((0)*speedscale)/upDownRat 
+    yuprescale = ((0)*speedscale)/upDownRat
+    zuprescale = ((0)*speedscale)/upDownRat
+    xdownrescale = (0)*speedscale 
+    ydownrescale = (0)*speedscale 
+    zdownrescale = (0)*speedscale
     # ORIGINAL POSITIONS ----------------------------
     #positions = np.array([(0, 50, 90), (0, 50, -15)])
     # NEW POSITIONS
-    startDist=100
-    newDist=startDist
-    startHeight=75
-    startBack=20
-    #appSpeed=3.3
-    appSpeed=3.9
-    positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) , startHeight),
-                         (0, startDist-20.0, 0),
-                         (-startDist, -startBack, 0),
-                         (startDist, -startBack, 0)])
-    # ------------------------------------------------
-    stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+    # ----------------------------------------------------------------
+    currCamera=scene.objects["MainCamera.002"]
+    startDist=300+currCamera.worldPosition[1]
+    startHeight=200+currCamera.worldPosition[2]
+    ## Above, In front, Right, Left
+    #positions = np.array([(currCamera.worldPosition[0]+0,
+    #                       currCamera.worldPosition[1] + np.sqrt(startDist*startDist - startHeight*startHeight) ,
+    #                       currCamera.worldPosition[2] + startHeight),
+    #                       (currCamera.worldPosition[0] + 0,
+    #                       currCamera.worldPosition[1] + startDist ,
+    #                       currCamera.worldPosition[2] + 0) , 
+    #                       (currCamera.worldPosition[0] + startDist,
+    #                       currCamera.worldPosition[1] + np.sqrt(startDist*startDist - startHeight*startHeight) ,
+    #                       currCamera.worldPosition[2] + 0) , 
+    #                       (currCamera.worldPosition[0] - startDist,
+    #                       currCamera.worldPosition[1] + np.sqrt(startDist*startDist - startHeight*startHeight) ,
+    #                       currCamera.worldPosition[2] + 0) ])
+    
 
-    circle = GameLogic.getCurrentScene().objects["LoomSphere"]
+    #3 on the left. $ This can obviously be improved to take any length of startAngs$
+    # NEXT fix up 2D version using camera worldpositions
+    # And put 3D version onto remote computer
+    startAngs=np.array([30, 70 , 45, 0])
+    positions = np.array([(currCamera.worldPosition[0] + 0 ,
+                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[0]))*startDist,
+                           currCamera.worldPosition[2] + + np.sin(np.deg2rad(startAngs[0]))*startDist) ,
+                           
+                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[1]))*startDist,
+                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[1]))*startDist,
+                           currCamera.worldPosition[2] + 0) ,
+                           
+                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[2]))*startDist,
+                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[2]))*startDist,
+                           currCamera.worldPosition[2] + 0) ,
+                           
+                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[3]))*startDist,
+                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[3]))*startDist,
+                           currCamera.worldPosition[2] + 0) ])
+    # ----------------------------------------------------------------
+    
+    if type(settings.loom_interval)==list:
+        # Make sure it starts on the 1st element of the list and not the 2nd
+        if GameLogic.Object['totalLooms'] == 0:
+            stop = settings.loom_interval[0]-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+        else:
+            currLoomCond=(GameLogic.Object['totalLooms'] % len(settings.loom_interval))-1
+            stop = settings.loom_interval[currLoomCond]-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+    else:
+        stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+    
     if (
         GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
         GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
@@ -560,6 +618,9 @@ def looming():
             tracked_speed = np.median(np.abs(GameLogic.Object['speed_tracker']))*1e2 * GameLogic.getLogicTicRate()
             if tracked_speed > settings.loom_speed_threshold:
         # Start trial
+                # Count the total number of trials that have occurred
+                GameLogic.Object['totalLooms'] += 1
+                
                 GameLogic.Object['puffthistrial'] = random.randint(0,1)
                 if settings.isloom_random:
                     GameLogic.Object['isloom'] = random.randint(0,1)
@@ -567,12 +628,251 @@ def looming():
                     GameLogic.Object['isloom'] = 1
                 print("BLENDER: Looming stimulus trial starting - running detected.Puff: "+str(GameLogic.Object['puffthistrial']))
                 if settings.loom_random:
-                    rand_pos_idx = random.randint(0, positions.shape[0]-1)
+                    rand_pos_idx = random.randint(0, positions.shape[0]-1) ######## HERE HERE CHANGE TO ORDER
                     #rand_pos_idx = 3
                 else:
-                    rand_pos_idx = 0
+                    if type(settings.loom_type)==list:
+                        currLoomType=(GameLogic.Object['totalLooms'] % len(settings.loom_type))-1
+                        rand_pos_idx=settings.loom_type[currLoomType]
+                        print(rand_pos_idx)
+                    else:
+                        rand_pos_idx = settings.loom_type
                 GameLogic.Object['rand_pos_idx'] = rand_pos_idx
                 circle.worldPosition = positions[rand_pos_idx]
+                
+                if rand_pos_idx == 0:
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = init_scale_up
+                    else:
+                         circle.localScale = fin_scale
+                # -----------------------------------------
+                elif rand_pos_idx >= 1:
+                # -----------------------------------------
+                    if GameLogic.Object['isloom']: 
+                         circle.localScale = init_scale_down
+                    else:
+                        circle.localScale = fin_scale
+                GameLogic.Object['loomcounter'] += 1
+                    
+        elif GameLogic.Object['loomcounter'] < settings.loom_grow_dur + settings.loom_maintain_dur + stop:
+            if GameLogic.Object['loomcounter'] < settings.loom_grow_dur:            
+            # Change scale during trial
+                minProximity=10 #5 ###$$$
+                if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
+                    
+                    # ------------------------------------------------------------
+                    # This is my janky hack to convert positions to vectors
+                    dummyPosLeg=scene.objects["RightLeg.002"]
+                    dummyPosLeg.worldPosition=positions[GameLogic.Object['rand_pos_idx']]
+                    
+                    # $$ HERE calculate the trajectory of the object
+                    directionVect=currCamera.worldPosition-dummyPosLeg.worldPosition
+                    ## Make the trajectory a bit shorter so that the sphere doesn't intersect
+                    trajectoryVect=np.multiply(directionVect,  np.divide(np.sqrt(sum(np.power(directionVect,2)))-minProximity,np.sqrt(sum(np.power(directionVect,2))))    )
+                    stepPosChange=np.divide(trajectoryVect,settings.loom_grow_dur)
+
+                    ## print(trajectoryVect)
+                    circle.worldPosition = np.add(circle.worldPosition,stepPosChange)
+                    # -----------------------------------------------------------------
+                    
+                elif (GameLogic.Object['rand_pos_idx'] >= 1 and GameLogic.Object['isloom']):
+                    
+                    # ------------------------------------------------------------
+                    # This is my janky hack to convert positions to vectors
+                    dummyPosLeg=scene.objects["RightLeg.002"]
+                    dummyPosLeg.worldPosition=positions[GameLogic.Object['rand_pos_idx']]
+                    
+                    # $$ HERE calculate the trajectory of the object
+                    directionVect=currCamera.worldPosition-dummyPosLeg.worldPosition
+                    ## Make the trajectory a bit shorter so that the sphere doesn't intersect
+                    trajectoryVect=np.multiply(directionVect,  np.divide(np.sqrt(sum(np.power(directionVect,2)))-minProximity,np.sqrt(sum(np.power(directionVect,2))))    )
+                    stepPosChange=np.divide(trajectoryVect,settings.loom_grow_dur)
+
+                    ## print(trajectoryVect)
+                    circle.worldPosition = np.add(circle.worldPosition,stepPosChange)
+                    # -----------------------------------------------------------------
+                    
+                    
+            elif GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur:
+            # Stop trial and wait
+                circle.localScale= fin_scale
+            if settings.loom_airpuff_delay is not None:
+                 if (settings.puff_random and GameLogic.Object['puffthistrial']== 1) or not settings.puff_random:
+                     if GameLogic.Object['loomcounter']%settings.puffint == settings.loom_airpuff_delay and \
+                     GameLogic.Object['puffcount'] < settings.puffnb:
+                          airpuff_loom()
+                          GameLogic.Object['puffcount']+= 1
+                     else:
+                         airpuff_loom_stop()
+                
+            GameLogic.Object['loomcounter'] += 1
+        else:
+            # Restart
+            GameLogic.Object['loomcounter'] = 0
+            GameLogic.Object['puffcount'] = 0
+    
+    else:
+        circle.localScale= fin_scale
+
+    if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
+        gio.write_looming(circle)
+
+
+def looming_2D():
+    
+    # Issue 1: screen is different: horizon too high
+    # Issue 2" camera --> checking now
+    
+    scene = GameLogic.getCurrentScene()
+    # Make some objects disappear
+    # All objects: 
+    objectsToRemove=["LoomSphere_Lines","LoomSphere_Chequer",
+                     "LoomSphere_Dots","LoomSphere_Lines_Concentric",
+                     "LoomSphere_Black","LoomSphere_Bright",
+                     "OuterSphere_Blank_Dark","OuterSphere_Blank_Bright","OuterSphere_Blank_Black",
+                     "OuterSphere_Lines", "OuterSphere_Chequer"] #"OuterSphere_Blank",] # put the object name into quotes exple : ["name1","name2"]
+    for obj in objectsToRemove:
+        scene.objects[obj].visible=False
+    
+    circle = scene.objects[settings.objToLoom]
+    circle.visible=True  
+    outerSphere = scene.objects[settings.outerSphereType]
+    outerSphere.visible=True
+    outerSphere.worldPosition = (0,0,0)
+    outerSphere.localScale=(100,100,100)
+                          
+
+    baseSize=20.0
+    init_scale_up = [baseSize, baseSize, baseSize]
+    init_scale_down = [baseSize, baseSize, baseSize]
+    fin_scale = [0, 0, 0]
+    speedscale = 3.0
+    # SCALE WITH Z
+    upDownRat=1.2
+    #xuprescale = ((0.5)*speedscale)/upDownRat #1
+    #yuprescale = ((0.5)*speedscale)/upDownRat #1
+    #zuprescale = ((0.3)*speedscale)/upDownRat #.3
+    
+    #xuprescale = ((0.5)*speedscale)/upDownRat #1
+    #yuprescale = ((0.5)*speedscale)/upDownRat #1
+    #zuprescale = ((0.3)*speedscale)/upDownRat #.3
+    
+    
+    xdownrescale = (0.5)*speedscale #1
+    ydownrescale = (0.5)*speedscale #1
+    zdownrescale = (0.1)*speedscale #.45
+    
+    
+    screenDist=120
+    # ORIGINAL POSITIONS ----------------------------
+    #positions = np.array([(0, 50, 90), (0, 50, -15)])
+    # NEW POSITIONS
+    startDist=100
+    newDist=startDist
+    startHeight=75
+    startBack=20 
+    appSpeed=3.5
+    #appSpeed=3.9
+    #positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) -20, startHeight),
+    #                     (0, startDist-90.0, 0),
+    #                     (-startDist, -startBack, 0),
+    #                     (startDist, -startBack, 0)])
+    
+    #startHeight=100
+    #positions = np.array([(0, np.sqrt(startDist*startDist - startHeight*startHeight) , startHeight)])
+    
+    upDownRat=1
+    appSpeed=3.4
+    xuprescale = xdownrescale
+    yuprescale = xdownrescale
+    zuprescale = xdownrescale
+    
+#    # Left vs right
+#    positions = np.array([(-startDist, -startBack, 0),
+#                         (startDist, -startBack, 0) ])
+    
+    # 3 on left - old method
+    positions = np.array([(-startDist, -startBack, 0),
+                         (-startDist/2, -startBack + startDist/2, 0) ,
+                         (0, startDist-startBack, 0)])
+    
+#    # 3 on Left - new method
+#    startDist=105
+#    currCamera=scene.objects["MainCamera.002"]
+#    startAngs=np.array([-60 , -30, 0])
+#    positions = np.array([(currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[0]))*startDist,
+#                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[0]))*startDist,
+#                           currCamera.worldPosition[2] + 0) ,
+#                           
+#                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[1]))*startDist,
+#                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[1]))*startDist,
+#                           currCamera.worldPosition[2] + 0) ,
+#                           
+#                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[2]))*startDist,
+#                           currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[2]))*startDist,
+#                           currCamera.worldPosition[2] + 0) ])
+
+    
+                         
+                         
+    # $$ These should laer be changed to face the camera properly. but the fudge is good enough for now                     
+    if settings.objToLoom =="LoomSphere_Lines_Concentric":
+        allOrientations = np.array([(9.95, 0 , 0),
+                                    (0, 0, 0),
+                                    (0, 0, -1.95),
+                                    (0, 0, 1.95)])
+    else:
+         allOrientations = np.array([(np.radians(90), 0 , 0),
+                                    (np.radians(90), 0, 0),
+                                    (np.radians(90), 0, 0),
+                                    (np.radians(90), 0, 0)])
+    # ------------------------------------------------
+    if type(settings.loom_interval)==list:
+        # Make sure it starts on the 1st element of the list and not the 2nd
+        if GameLogic.Object['totalLooms'] == 0:
+            stop = settings.loom_interval[0]-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+        else:
+            currLoomCond=(GameLogic.Object['totalLooms'] % len(settings.loom_interval))-1
+            stop = settings.loom_interval[currLoomCond]-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+    else:
+        stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+
+    if (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
+        GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
+        GameLogic.Object['loom_first_trial'] += 1
+    elif (
+        GameLogic.Object['train_open'] or GameLogic.Object['file_open']):
+        #print("Start looming stimulus presentation")
+        #print(GameLogic.Object['loomcounter'])
+
+        if GameLogic.Object['loomcounter'] == 0:
+            tracked_speed = np.median(np.abs(GameLogic.Object['speed_tracker']))*1e2 * GameLogic.getLogicTicRate()
+            if tracked_speed > settings.loom_speed_threshold:
+        # Start trial
+                # Count the total number of trials that have occurred
+                GameLogic.Object['totalLooms'] += 1
+                
+                GameLogic.Object['puffthistrial'] = random.randint(0,1)
+                if settings.isloom_random:
+                    GameLogic.Object['isloom'] = random.randint(0,1)
+                else:
+                    GameLogic.Object['isloom'] = 1
+                print("BLENDER: Looming stimulus trial starting - running detected.Puff: "+str(GameLogic.Object['puffthistrial']))
+                if settings.loom_random:
+                    rand_pos_idx = random.randint(0, positions.shape[0]-1) ######## HERE HERE CHANGE TO ORDER
+                    #rand_pos_idx = 3
+                else:
+                    if type(settings.loom_type)==list:
+                        currLoomType=(GameLogic.Object['totalLooms'] % len(settings.loom_type))-1
+                        rand_pos_idx=settings.loom_type[currLoomType]
+                        print(rand_pos_idx)
+                    else:
+                        rand_pos_idx = settings.loom_type
+                GameLogic.Object['rand_pos_idx'] = rand_pos_idx
+                circle.worldPosition = positions[rand_pos_idx]
+                if settings.changeRotations:
+                    circle.localOrientation = allOrientations[rand_pos_idx]
                 if rand_pos_idx == 0:
                     if GameLogic.Object['isloom']: 
                          circle.localScale = [0,0,0]#init_scale_up
@@ -587,14 +887,20 @@ def looming():
                     
         elif GameLogic.Object['loomcounter'] < settings.loom_grow_dur + settings.loom_maintain_dur + stop:
             if GameLogic.Object['loomcounter'] < settings.loom_grow_dur:            
-            # Change scale during trial
+                # Change scale during trial
+                
                 if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
                     # newDist=newDist-10
+                    #newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
+                    #newScale=(baseSize/newDist)*screenDist
+                    #circle.localScale.x =(xuprescale)*newScale
+                    #circle.localScale.y =(yuprescale)*newScale
+                    #circle.localScale.z =(zuprescale)*newScale
                     newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
                     newScale=(baseSize/newDist)*screenDist
-                    circle.localScale.x =(xuprescale)*newScale
-                    circle.localScale.y =(yuprescale)*newScale
-                    circle.localScale.z =(zuprescale)*newScale
+                    circle.localScale.x =(xdownrescale)*newScale
+                    circle.localScale.y =(ydownrescale)*newScale
+                    circle.localScale.z =(zdownrescale)*newScale
                 elif (GameLogic.Object['rand_pos_idx'] == 1 and GameLogic.Object['isloom']):
                     newDist+= startDist-appSpeed*float(GameLogic.Object['loomcounter'] )
                     newScale=(baseSize/newDist)*screenDist
