@@ -10,8 +10,21 @@ import subprocess
 import datetime
 import settings
 import nicomedilib as ncl
-import arduino_serial
-import serial
+
+# $$$$$ CHANGED THIS BIT
+try:
+    import arduino_serial
+    HAS_ARDUINO_SERIAL = True
+except ImportError:
+    HAS_ARDUINO_SERIAL = False
+
+# $$$$$ CHANGED THIS
+try:
+    import serial
+    HAS_SERIAL = True
+except ImportError:
+    HAS_SERIAL = False
+
 import xinput
 import random
 

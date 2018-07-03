@@ -35,6 +35,9 @@ def write_settings(fngain):
     hf.close()
     
 def create_data_dir():
+    if 'win32' in sys.platform:
+        return
+
     if os.uname()[0] == "Darwin":
         path = "/Users/%s/data/" % os.getlogin()
     else:
@@ -497,15 +500,16 @@ def start_record_file():
     fn_settings_py = fn[:-4] + "_settings.py"
     blenderpath = GameLogic.expandPath('//')
     shutil.copyfile('%s/py/settings.py' % blenderpath, fn_settings_py)
-
-    cues.write_gratings(GameLogic.Object["current_walls"])
+    if "current_walls" in GameLogic.Object.keys():
+        cues.write_gratings(GameLogic.Object["current_walls"])
     
 def write_looming(circle):
-    GameLogic.Object['current_loomfile'].write(np.array([
-        circle.worldPosition[0],
-        circle.worldPosition[1],
-        circle.worldPosition[2],
-        circle.localScale.x,
-        circle.localScale.y,
-        circle.localScale.z], dtype=np.float64).tobytes())
-    GameLogic.Object['current_loomfile'].flush()
+    if 'win32' not in sys.platform:
+        GameLogic.Object['current_loomfile'].write(np.array([
+            circle.worldPosition[0],
+            circle.worldPosition[1],
+            circle.worldPosition[2],
+            circle.localScale.x,
+            circle.localScale.y,
+            circle.localScale.z], dtype=np.float64).tobytes())
+        GameLogic.Object['current_loomfile'].flush()
