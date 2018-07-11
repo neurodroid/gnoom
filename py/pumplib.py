@@ -28,9 +28,14 @@ if socket.gethostname() == 'dent3' or socket.gethostname() == 'dent4':
 else:
     socketrange = range(10)
 
+if socket.gethostname() == 'dent3':
+    socketbasename = '/dev/ttyUSB'
+else:
+    socketbasename = '/dev/ttyS'
+
 for nport in socketrange:
     try:
-        portname = '/dev/ttyS{0:d}'.format(nport)
+        portname = '{0}{1:d}'.format(socketbasename, nport)
         ser = serial.Serial(portname, 19200, bytesize=8, parity='N', stopbits=1, timeout=None)
         print("Pump found on port " + portname)
         break
