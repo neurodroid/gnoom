@@ -350,6 +350,27 @@ def incrementOdorCounter():
             # Close all scent valves, open unscented valve
             gc.open_valve(1)   
 
+def light_flashes():
+    ard = GameLogic.Object['arduino']
+    if GameLogic.Object['file_open'] and not GameLogic.globalDict['light_switch']:
+        GameLogic.Object['frameCounter'] += 1
+        if GameLogic.Object['frameCounter'] < settings.flash_interval:
+            pass
+        elif GameLogic.Object['frameCounter'] == settings.flash_interval:
+            gc.write_arduino_nonblocking(ard, b'1')
+            #rd.write(('1').encode('latin-1'))
+            gio.save_event('I0')
+            print ("Flash on")
+        elif GameLogic.Object['frameCounter'] > settings.flash_interval and GameLogic.Object['frameCounter'] < (settings.flash_interval + settings.flash_duration):
+            pass
+        elif GameLogic.Object['frameCounter'] == (settings.flash_interval + settings.flash_duration):
+            GameLogic.Object['frameCounter'] = 0
+            gc.write_arduino_nonblocking(ard, b'3')
+            #ard.write(('3').encode('latin-1'))
+            gio.save_event('I1')
+            print ("Flash off")
+    else:
+        pass
 
 def airpuff_loom():
     ard = GameLogic.Object['arduino']
