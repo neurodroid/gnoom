@@ -97,9 +97,7 @@ def init():
                 ori=settings.verticalGratingAngle, sf=settings.verticalGratingScale)
             GameLogic.Object["grating2"] = chooseWalls.grating(
                 ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
-        # GameLogic.Object["reward_zone_start"] = settings.reward_zone_start
-        # GameLogic.Object["reward_zone_end"] = settings.reward_zone_end
-
+            chooseWalls.initWalls()
 #            for wallkey in ["LW1", "RW1"]:
 #                chooseWalls.set_texture_buffer(
 #                    GameLogic.Object["grating1"], wallkey)
@@ -248,7 +246,7 @@ def init():
             gc.spawn_process("\0usb3socket", ['%s/cpp/usb3/arv-camera-test' % blenderpath,], #MC2015
                           system=False, addenv={"SDL_VIDEO_WINDOW_POS":"\"1280,480\""})
         print("done")
-
+        print("Sending usb3 file name " + GameLogic.Object['fw_trunk'])
         connusb3.send(GameLogic.Object['fw_trunk'].encode('latin-1'))
         gc.recv_ready(connusb3)
         connusb3.setblocking(0)
