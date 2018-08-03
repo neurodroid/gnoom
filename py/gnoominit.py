@@ -33,8 +33,11 @@ def init():
     GameLogic.Object['lapCounter'] = 0
     GameLogic.Object['frameCounter'] = 0
     GameLogic.setLogicTicRate(100)
+    GameLogic.setMaxLogicFrame(100)
+    GameLogic.setMaxPhysicsFrame(100)
 
     sys.stdout.write("BLENDER: Maximum number of logic frames per render frame: %d\n" % GameLogic.getMaxLogicFrame() )
+    sys.stdout.write("BLENDER: Logic tic rate: %d\n" % GameLogic.getLogicTicRate() )
     sys.stdout.write("BLENDER: Maximum number of physics frames per render frame: %d\n" % GameLogic.getMaxPhysicsFrame() )
     sys.stdout.write("BLENDER: Physics update frequency: %d Hz\n" % GameLogic.getPhysicsTicRate() )
 
