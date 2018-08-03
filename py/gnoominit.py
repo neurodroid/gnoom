@@ -30,6 +30,8 @@ def init():
     GameLogic.Object = {}
     print("BLENDER: GameLogic object created")
     GameLogic.Object['closed'] = False
+    GameLogic.Object['lapCounter'] = 0
+    GameLogic.Object['frameCounter'] = 0
     GameLogic.setLogicTicRate(100)
 
     sys.stdout.write("BLENDER: Maximum number of logic frames per render frame: %d\n" % GameLogic.getMaxLogicFrame() )
@@ -171,6 +173,7 @@ def init():
     GameLogic.Object['boundy'] = 158.0
     GameLogic.Object['hysteresis'] = 0.5
     GameLogic.Object['speed_tracker'] = np.zeros((100))
+    GameLogic.Object['lapCounter'] = 0
 
     blenderpath = GameLogic.expandPath('//')
     
