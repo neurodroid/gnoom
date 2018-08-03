@@ -40,7 +40,7 @@ def init():
 
     try:
         arduino = arduino_serial.SerialPort(settings.arduino_port, 19200)
-        sys.stdout.write("BLENDER: Successfully opened arduino\n")
+        sys.stdout.write("BLENDER: Successfully opened arduino on {0}\n".format(settings.arduino_port))
     except OSError:
         sys.stdout.write("BLENDER: Failed to open arduino\n")
         arduino = None
@@ -303,6 +303,7 @@ def init():
     GameLogic.Object['piezoframes'] = 0
     GameLogic.Object['piezoframepause'] = 0
  
+    GameLogic.Object['lapCounter'] = 0
     
     scene = GameLogic.getCurrentScene()
     if scene.name == "Scene":

@@ -55,13 +55,13 @@ if __name__=="__main__":
 
     if 'linux' in sys.platform:
         arduino_port = None
-        trunk = "/dev/ttyUSB"
+        trunk = "/dev/ttyACM"
         for nport in range(0,9):
             arduino_port = "%s%i" % (trunk,nport)
             if os.path.exists(arduino_port):
                 break
         if not os.path.exists(arduino_port):
-            trunk = "/dev/ttyACM"
+            trunk = "/dev/ttyUSB"
             for nport in range(0,9):
                 arduino_port = "%s%i" % (trunk,nport)
                 if os.path.exists(arduino_port):
