@@ -620,7 +620,7 @@ def looming():
     startAngs=np.array([30, 70 , 45, 0])
     positions = np.array([(currCamera.worldPosition[0] + 0 ,
                            currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[0]))*startDist,
-                           currCamera.worldPosition[2] + + np.sin(np.deg2rad(startAngs[0]))*startDist) ,
+                           currCamera.worldPosition[2] + np.sin(np.deg2rad(startAngs[0]))*startDist) ,
                            
                            (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[1]))*startDist,
                            currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[1]))*startDist,
@@ -1204,8 +1204,6 @@ def looming_3D():
         gio.write_looming(circle)
 # -----------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------
-        
-        
 
 def detect_scene_change():
     # scene change requested; start counting
