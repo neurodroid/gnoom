@@ -360,7 +360,7 @@ control_lost_cb (ArvGvDevice *gv_device)
 }
 
 int
-init_socket()
+init_socket(const char* camera_name)
 {
     timespec t_sleep, t_rem;
     t_sleep.tv_sec = 0;
@@ -377,7 +377,12 @@ init_socket()
 
     std::ostringstream tmpfn;
     char* ntry = (char*)"0";
-    tmpfn << "usb3socket" << ntry;
+    if (camera_name != NULL) {
+        tmpfn << camera_name << ntry;
+    } else {
+        tmpfn << "usb3socket" << ntry;
+    }
+    
     std::cout << "USB3: socket name " << tmpfn.str() << std::endl;
     
     int nameLen = strlen(tmpfn.str().c_str());
@@ -442,19 +447,6 @@ main (int argc, char **argv)
 	GError *error = NULL;
 	int i;
 
-	data.ipcs = init_socket();
-	if (data.ipcs < 0) {
-		return EXIT_FAILURE;
-	}
-	if (init_connection(data.ipcs) < 0) {
-		return EXIT_FAILURE;
-	}
-	data.buffer_count = 0;
-	data.chunks = NULL;
-	data.chunk_parser = NULL;
-        data.rawfile = NULL;
-        data.trawfile = NULL;
-        clock_gettime(CLOCK_REALTIME, &data.t_last_connect);
 	arv_g_thread_init (NULL);
 	arv_g_type_init ();
 
@@ -471,6 +463,20 @@ main (int argc, char **argv)
 	g_option_context_free (context);
 
 	arv_debug_enable (arv_option_debug_domains);
+
+	data.ipcs = init_socket(arv_option_camera_name);
+	if (data.ipcs < 0) {
+		return EXIT_FAILURE;
+	}
+	if (init_connection(data.ipcs) < 0) {
+		return EXIT_FAILURE;
+	}
+	data.buffer_count = 0;
+	data.chunks = NULL;
+	data.chunk_parser = NULL;
+        data.rawfile = NULL;
+        data.trawfile = NULL;
+        clock_gettime(CLOCK_REALTIME, &data.t_last_connect);
 
 	if (arv_option_camera_name == NULL)
 		g_print ("Looking for the first available camera\n");

@@ -9,10 +9,12 @@ import arduino_serial
 import serial
 import xinput
 import random
+from PIL import Image
 
 import gnoomcomm as gc
 import gnoomio as gio
 import gnoomutils as gu
+import chooseWalls
 
 if settings.gratings:
     import chooseWalls
@@ -98,6 +100,10 @@ def init():
             GameLogic.Object["grating2"] = chooseWalls.grating(
                 ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
             chooseWalls.initWalls()
+    else:
+        GameLogic.Object["reward_zone_start"] = settings.reward_zone_start
+        GameLogic.Object["reward_zone_end"] = settings.reward_zone_end
+        
 #            for wallkey in ["LW1", "RW1"]:
 #                chooseWalls.set_texture_buffer(
 #                    GameLogic.Object["grating1"], wallkey)
@@ -168,12 +174,19 @@ def init():
     GameLogic.Object['puffthistrial'] = 0
     GameLogic.Object['isloom'] = 0
     GameLogic.Object['loomcounter']=0
+    GameLogic.Object['totalLooms'] = 0
     GameLogic.Object['loom_first_trial']=0
     GameLogic.Object['rewpos'] = [0.98] # 1.0 # np.zeros((16))
     GameLogic.Object['boundx'] =   8.0
     GameLogic.Object['boundy'] = 158.0
     GameLogic.Object['hysteresis'] = 0.5
     GameLogic.Object['speed_tracker'] = np.zeros((100))
+    GameLogic.Object['in_running_period'] = False
+    GameLogic.Object['in_running_period_counter'] = 0
+    GameLogic.Object['minloomtrigger'] = 0
+    GameLogic.Object['loomtrigger'] = -1
+    GameLogic.Object['loomunlocked'] = False
+    GameLogic.Object['playThisLoom'] = False
     GameLogic.Object['lapCounter'] = 0
 
     blenderpath = GameLogic.expandPath('//')
@@ -243,14 +256,30 @@ def init():
         sys.stdout.write("BLENDER: Starting usb3... ")
         sys.stdout.flush()
         susb3, connusb3, addrusb3, pusb3 = \
-            gc.spawn_process("\0usb3socket", ['%s/cpp/usb3/arv-camera-test' % blenderpath,], #MC2015
-                          system=False, addenv={"SDL_VIDEO_WINDOW_POS":"\"1280,480\""})
+            gc.spawn_process(
+                "\0" + settings.usb3_pupil,
+                ['{0}/cpp/usb3/arv-camera-test'.format(blenderpath),
+                 '-n', settings.usb3_pupil], #MC2015
+                system=False, addenv={"SDL_VIDEO_WINDOW_POS":"\"1280,480\""})
         print("done")
         print("Sending usb3 file name " + GameLogic.Object['fw_trunk'])
         connusb3.send(GameLogic.Object['fw_trunk'].encode('latin-1'))
         gc.recv_ready(connusb3)
         connusb3.setblocking(0)
         GameLogic.Object['usb3conn'] = connusb3
+        if settings.usb3_body is not None:
+            s2usb3, conn2usb3, addr2usb3, p2usb3 = \
+                gc.spawn_process(
+                    "\0" + settings.usb3_body,
+                    ['{0}/cpp/usb3/arv-camera-test'.format(blenderpath),
+                     '-n', settings.usb3_body], #MC2015
+                    system=False, addenv={"SDL_VIDEO_WINDOW_POS":"\"1280,480\""})
+            print("done")
+            print("Sending usb3 file name " + GameLogic.Object['fw_trunk'] + 'body')
+            conn2usb3.send((GameLogic.Object['fw_trunk'] + 'body').encode('latin-1'))
+            gc.recv_ready(conn2usb3)
+            conn2usb3.setblocking(0)
+            GameLogic.Object['usb3conn2'] = conn2usb3
 
     GameLogic.Object['has_usb3'] = settings.has_usb3
     

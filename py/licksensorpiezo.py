@@ -24,6 +24,8 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../arduino/py")
 import arduino_serial
 
+TIMEOUT = 2.0
+
 if 'linux' in sys.platform:
     arduino_port = None
     trunk = "/dev/ttyACM"
@@ -94,7 +96,7 @@ if __name__=="__main__":
             if connected:
                 t_disconnect = time.time()
             connected = False
-            if time.time()-t_disconnect > 1.0:
+            if time.time()-t_disconnect > TIMEOUT:
                 break
         else:
             connected=True

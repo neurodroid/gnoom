@@ -25,6 +25,8 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../arduino/py")
 import arduino_serial
 
+TIMEOUT = 2.0
+
 def init_socket(sockno):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     connected = False
@@ -94,7 +96,7 @@ if __name__=="__main__":
             if connected:
                 t_disconnect = time.time()
             connected = False
-            if time.time()-t_disconnect > 1.0:
+            if time.time()-t_disconnect > TIMEOUT:
                 break
         else:
             connected=True

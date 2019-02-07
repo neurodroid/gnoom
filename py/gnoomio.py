@@ -242,8 +242,13 @@ def write_training_file(move, xtranslate, ytranslate, zrotate):
     has_usb3 =  GameLogic.Object['has_usb3']
     if has_usb3:
         connusb3 = GameLogic.Object['usb3conn']
+        if 'usb3conn2' in GameLogic.Object.keys():
+            conn2usb3 = GameLogic.Object['usb3conn2']
+        else:
+            conn2usb3 = None
     else:
         connusb3 = None
+        conn2usb3 = None
 
     time1 = time.time()
     dt = time1 - GameLogic.Object['train_tstart']
@@ -265,6 +270,10 @@ def write_training_file(move, xtranslate, ytranslate, zrotate):
         frametimefw = gc.parse_frametimes(connfw)-GameLogic.Object['time0']
     elif has_usb3:
         frametimefw = gc.parse_frametimes(connusb3)-GameLogic.Object['time0']
+        if conn2usb3 is not None:
+            frametimefw2 = gc.parse_frametimes(conn2usb3)-GameLogic.Object['time0']
+            frametimefw2 = -frametimefw2-10
+            frametimefw = np.concatenate((frametimefw, frametimefw2))
     else:
         frametimefw = np.array([0,])
     sys.stdout.write("%s\r" % (gu.time2str(dt)))
@@ -307,6 +316,8 @@ def stop_training_file():
         gc.safe_send(GameLogic.Object['fwconn'], 'stop', '')
     if GameLogic.Object['has_usb3']:
         gc.safe_send(GameLogic.Object['usb3conn'], 'stop', '')
+        if 'usb3conn2' in GameLogic.Object.keys():
+            gc.safe_send(GameLogic.Object['usb3conn2'], 'stop', '')
     arduino = GameLogic.Object['arduino']
     if arduino is not None:
         gc.write_arduino_nonblocking(arduino, b'd')
@@ -340,7 +351,10 @@ def start_training_file():
     if GameLogic.Object['has_usb3']:
         gc.safe_send(GameLogic.Object['usb3conn'], "begin%send" % GameLogic.Object['current_fwfile'],
                   "BLENDER: Couldn't start video; resource unavailable\n")
-
+        if 'usb3conn2' in GameLogic.Object.keys():
+            gc.safe_send(GameLogic.Object['usb3conn2'], "begin%send" % (GameLogic.Object['current_fwfile']+'body'),
+                      "BLENDER: Couldn't start video; resource unavailable\n")
+            
     GameLogic.Object['train_tstart'] = time.time()
     GameLogic.Object['train_open'] = True
 
@@ -381,6 +395,10 @@ def write_record_file(move, xtranslate, ytranslate, zrotate):
         frametimefw = gc.parse_frametimes(GameLogic.Object['fwconn'])-GameLogic.Object['time0']
     elif GameLogic.Object['has_usb3']:
         frametimefw = gc.parse_frametimes(GameLogic.Object['usb3conn'])-GameLogic.Object['time0']
+        if 'usb3conn2' in GameLogic.Object.keys():
+            frametimefw2 = gc.parse_frametimes(GameLogic.Object['usb3conn2'])-GameLogic.Object['time0']
+            frametimefw2 = -frametimefw2-10
+            frametimefw = np.concatenate((frametimefw, frametimefw2))
     else:
         frametimefw = np.array([0,])
     GameLogic.Object['current_file'].write(np.array([dt, 
@@ -404,7 +422,7 @@ def write_record_file(move, xtranslate, ytranslate, zrotate):
     if len(frametimefw) > 0:
         GameLogic.Object['current_file'].write(frametimefw.tostring())
         GameLogic.Object['current_file'].flush()
-        
+
 def stop_record_file():
     arduino = GameLogic.Object['arduino']
 
@@ -413,6 +431,8 @@ def stop_record_file():
         gc.safe_send(GameLogic.Object['fwconn'], 'stop', '')
     if GameLogic.Object['has_usb3']:
         gc.safe_send(GameLogic.Object['usb3conn'], 'stop', '')
+        if 'usb3conn2' in GameLogic.Object.keys():
+            gc.safe_send(GameLogic.Object['usb3conn2'], 'stop', '')
     GameLogic.Object['bcstatus']=False
     if settings.has_comedi and ncl.has_comedi:
         gc.safe_send(GameLogic.Object['comediconn'], 'stop', '')
@@ -473,6 +493,9 @@ def start_record_file():
     if GameLogic.Object['has_usb3']:
         gc.safe_send(GameLogic.Object['usb3conn'], "begin%send" % GameLogic.Object['current_fwfile'],
                   "BLENDER: Couldn't start video; resource unavailable\n")
+        if 'usb3conn2' in GameLogic.Object.keys():
+            gc.safe_send(GameLogic.Object['usb3conn2'], "begin%send" % (GameLogic.Object['current_fwfile'] + 'body'),
+                      "BLENDER: Couldn't start video; resource unavailable\n")
 
     if settings.has_comedi and ncl.has_comedi:
         gc.safe_send(GameLogic.Object['comediconn'], "begin%send" % GameLogic.Object['current_ephysfile'],

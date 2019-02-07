@@ -10,6 +10,7 @@ import subprocess
 import datetime
 import settings
 import nicomedilib as ncl
+import bge
 
 # $$$$$ CHANGED THIS BIT
 try:
@@ -562,8 +563,107 @@ def move_player(move):
     return xtranslate, ytranslate, zrotate
 
 def looming():
+
+    playNextTrial=True
     
-    scene = GameLogic.getCurrentScene()
+    if settings.singTrials:
+        
+        settings.loom_interval = [200]
+    
+        keyboard = GameLogic.keyboard
+        JUST_ACTIVATED = GameLogic.KX_INPUT_JUST_ACTIVATED
+    
+        if keyboard.events[bge.events.LEFTALTKEY] == bge.logic.KX_INPUT_ACTIVE:
+            
+            #Set code
+            if settings.objToLoom=="LoomSphere_Bright" and settings.outerSphereType=="OuterSphere_Blank_Bright":
+                if ~settings.appearFlag:
+                    str2='1'
+                if settings.appearFlag:
+                    str2='3'
+            if settings.objToLoom=="LoomSphere_Bright" and settings.outerSphereType=="OuterSphere_Blank_Dark":
+                if ~settings.appearFlag:
+                    str2='2'
+                if settings.appearFlag:
+                    str2='4'
+            if settings.objToLoom=="LoomSphere_Black" and settings.outerSphereType=="OuterSphere_Blank_Bright":
+                if ~settings.appearFlag:
+                    str2='5'
+                if settings.appearFlag:
+                    str2='7'
+            if settings.objToLoom=="LoomSphere_Black" and settings.outerSphereType=="OuterSphere_Blank_Dark":
+                if ~settings.appearFlag:
+                    str2='6'
+                if settings.appearFlag:
+                    str2='8'
+            
+            # change looming position
+            if keyboard.events[bge.events.FKEY] == JUST_ACTIVATED:
+                 print("Loom type 0: Top!")
+                 settings.loom_type= [0]
+                 settings.playThisTrial=True
+                 playNextTrial=False 
+                 GameLogic.Object['loomcounter']=0
+                 str1='U'
+                 print(str1+str2)
+                 #gio.save_event(str1+str2)
+            if keyboard.events[bge.events.BKEY] == JUST_ACTIVATED:
+                print("Loom type 1: Right!")
+                settings.loom_type= [1]
+                settings.playThisTrial=True
+                playNextTrial=False 
+                GameLogic.Object['loomcounter']=0
+                str1='R'
+                print(str1+str2)
+                #gio.save_event(str1+str2)
+            if keyboard.events[bge.events.CKEY] == JUST_ACTIVATED:
+                 print("Loom type 2: Left!")
+                 settings.loom_type= [2]
+                 settings.playThisTrial=True
+                 playNextTrial=False 
+                 GameLogic.Object['loomcounter']=0
+                 str1='L'
+                 print(str1+str2)
+                 #gio.save_event(str1+str2)
+            if keyboard.events[bge.events.VKEY] == JUST_ACTIVATED:
+                print("Loom type 3!")
+                settings.loom_type= [3]
+                settings.playThisTrial=True
+                playNextTrial=False 
+                GameLogic.Object['loomcounter']=0
+                str1='M'
+                print(str1+str2)
+                #gio.save_event(str1+str2)
+                
+            # Change looming objects
+            if keyboard.events[bge.events.LKEY] == JUST_ACTIVATED:
+                if settings.loomNum < len(settings.allLoomObj)-1:
+                    settings.loomNum+=1
+                else:
+                    settings.loomNum=0
+                settings.objToLoom=settings.allLoomObj[settings.loomNum]
+                print(settings.objToLoom)
+                
+            # Change background type
+            if keyboard.events[bge.events.WKEY] == JUST_ACTIVATED:
+                if settings.outerNum < len(settings.allOuterTypes)-1:
+                    settings.outerNum+=1
+                else:
+                    settings.outerNum=0
+                settings.outerSphereType=settings.allOuterTypes[settings.outerNum]
+                print(settings.outerSphereType)
+                
+            # Change looming type: loom or appear
+            if keyboard.events[bge.events.AKEY] == JUST_ACTIVATED:
+                if settings.appearFlag:
+                    settings.appearFlag=False
+                else:
+                    settings.appearFlag=True
+                print('Stimuli Appear:',settings.appearFlag)
+                
+        
+    scene = GameLogic.getCurrentScene()    
+    
     # Make some objects disappear
     # All objects: 
     objectsToRemove=["LoomSphere_Lines","LoomSphere_Chequer",
@@ -625,16 +725,16 @@ def looming():
     #3 on the left. $ This can obviously be improved to take any length of startAngs$
     # NEXT fix up 2D version using camera worldpositions
     # And put 3D version onto remote computer
-    startAngs=np.array([30, 70 , 45, 0])
+    startAngs=np.array([30, 70 , 70, 0])
     positions = np.array([(currCamera.worldPosition[0] + 0 ,
                            currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[0]))*startDist,
-                           currCamera.worldPosition[2] + + np.sin(np.deg2rad(startAngs[0]))*startDist) ,
+                           currCamera.worldPosition[2] + np.sin(np.deg2rad(startAngs[0]))*startDist) ,
                            
                            (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[1]))*startDist,
                            currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[1]))*startDist,
                            currCamera.worldPosition[2] + 0) ,
                            
-                           (currCamera.worldPosition[0] + np.sin(np.deg2rad(startAngs[2]))*startDist,
+                           (currCamera.worldPosition[0] - np.sin(np.deg2rad(startAngs[2]))*startDist,
                            currCamera.worldPosition[1] + np.cos(np.deg2rad(startAngs[2]))*startDist,
                            currCamera.worldPosition[2] + 0) ,
                            
@@ -643,6 +743,8 @@ def looming():
                            currCamera.worldPosition[2] + 0) ])
     # ----------------------------------------------------------------
     
+    
+    
     if type(settings.loom_interval)==list:
         # Make sure it starts on the 1st element of the list and not the 2nd
         if GameLogic.Object['totalLooms'] == 0:
@@ -650,6 +752,7 @@ def looming():
         else:
             currLoomCond=(GameLogic.Object['totalLooms'] % len(settings.loom_interval))-1
             stop = settings.loom_interval[currLoomCond]-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
+        print(GameLogic.Object['loomcounter']) ######
     else:
         stop = settings.loom_interval-(settings.loom_grow_dur+settings.loom_maintain_dur)# 30000-(grow_dur+maintain_dur)
     
@@ -657,8 +760,8 @@ def looming():
         GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and (
         GameLogic.Object['loom_first_trial'] < settings.loom_first_trial_delay):
         GameLogic.Object['loom_first_trial'] += 1
-    elif (
-        GameLogic.Object['train_open'] or GameLogic.Object['file_open']):
+    elif ( ### HERE I THINK
+        (GameLogic.Object['train_open'] or GameLogic.Object['file_open']) and settings.playThisTrial):
         #print("Start looming stimulus presentation")
         #print(GameLogic.Object['loomcounter'])
 
@@ -705,7 +808,7 @@ def looming():
         elif GameLogic.Object['loomcounter'] < settings.loom_grow_dur + settings.loom_maintain_dur + stop:
             if GameLogic.Object['loomcounter'] < settings.loom_grow_dur:            
             # Change scale during trial
-                minProximity=10 #5 ###$$$
+                minProximity= 10 #5 ###$$$
                 if (GameLogic.Object['rand_pos_idx'] == 0 and GameLogic.Object['isloom']):
                     
                     # ------------------------------------------------------------
@@ -723,6 +826,9 @@ def looming():
                     circle.worldPosition = np.add(circle.worldPosition,stepPosChange)
                     # -----------------------------------------------------------------
                     
+                    if settings.appearFlag:
+                        circle.worldPosition = np.add(dummyPosLeg.worldPosition,trajectoryVect)
+                    
                 elif (GameLogic.Object['rand_pos_idx'] >= 1 and GameLogic.Object['isloom']):
                     
                     # ------------------------------------------------------------
@@ -739,6 +845,9 @@ def looming():
                     ## print(trajectoryVect)
                     circle.worldPosition = np.add(circle.worldPosition,stepPosChange)
                     # -----------------------------------------------------------------
+                    
+                    if settings.appearFlag:
+                        circle.worldPosition = np.add(dummyPosLeg.worldPosition,trajectoryVect)
                     
                     
             elif GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur:
@@ -764,6 +873,9 @@ def looming():
 
     if GameLogic.Object['train_open'] or GameLogic.Object['file_open']:
         gio.write_looming(circle)
+        
+    if ~playNextTrial and (GameLogic.Object['loomcounter'] > settings.loom_grow_dur + settings.loom_maintain_dur):
+        settings.playThisTrial=False
 
 
 def looming_2D():
@@ -1212,8 +1324,6 @@ def looming_3D():
         gio.write_looming(circle)
 # -----------------------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------
-        
-        
 
 def detect_scene_change():
     # scene change requested; start counting
