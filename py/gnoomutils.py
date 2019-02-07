@@ -324,10 +324,18 @@ def zeroPos():
             chooseCues.randomCues(settings.proba_mismatch)
 
     
-    if settings.cues or settings.gratings:
+    if settings.cues or settings.gratings or settings.chunland:
         # gc.zeroPump()
         # GameLogic.Object['WallTouchTicksCounter']=None
         GameLogic.Object['RewardTicksCounter'] = None
+
+    if settings.spatial_debug:
+        try:
+            if GameLogic.Object['light_off']:
+                for object in scene.objects:
+                    object.visible = False
+        except:
+            pass
 
     if time.time()-tzeroPos > 0.011:
         sys.stdout.write(
