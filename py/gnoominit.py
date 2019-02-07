@@ -9,10 +9,12 @@ import arduino_serial
 import serial
 import xinput
 import random
+from PIL import Image
 
 import gnoomcomm as gc
 import gnoomio as gio
 import gnoomutils as gu
+import chooseWalls
 
 if settings.gratings:
     import chooseWalls
@@ -98,6 +100,10 @@ def init():
             GameLogic.Object["grating2"] = chooseWalls.grating(
                 ori=settings.obliqueGratingAngle, sf=settings.obliqueGratingScale)
             chooseWalls.initWalls()
+    else:
+        GameLogic.Object["reward_zone_start"] = settings.reward_zone_start
+        GameLogic.Object["reward_zone_end"] = settings.reward_zone_end
+        
 #            for wallkey in ["LW1", "RW1"]:
 #                chooseWalls.set_texture_buffer(
 #                    GameLogic.Object["grating1"], wallkey)
@@ -175,6 +181,12 @@ def init():
     GameLogic.Object['boundy'] = 158.0
     GameLogic.Object['hysteresis'] = 0.5
     GameLogic.Object['speed_tracker'] = np.zeros((100))
+    GameLogic.Object['in_running_period'] = False
+    GameLogic.Object['in_running_period_counter'] = 0
+    GameLogic.Object['minloomtrigger'] = 0
+    GameLogic.Object['loomtrigger'] = -1
+    GameLogic.Object['loomunlocked'] = False
+    GameLogic.Object['playThisLoom'] = False
     GameLogic.Object['lapCounter'] = 0
 
     blenderpath = GameLogic.expandPath('//')
