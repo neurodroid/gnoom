@@ -80,6 +80,8 @@ def init():
             GameLogic.Object['replay_pos'] = training.read_pos(
                 fn_pos, 1e9, False, meters=False)
             posy = GameLogic.Object['replay_pos'][1]
+            replay_time, _, _, _, _ = training.read_move(
+                settings.replay_track + ".move")
             evlist, timeev = training.read_events(
                 settings.replay_track + ".events", teleport_times=None)
             GameLogic.Object['replay_rewards'] = np.array([
@@ -91,6 +93,8 @@ def init():
                 print(intervals)
                 GameLogic.Object['replay_rewards'] = np.cumsum(intervals)
             print("Replay reward times: ", GameLogic.Object['replay_rewards'])
+            print("Total number of replay rewards: ", len(GameLogic.Object['replay_rewards']))
+            print("Total duration of replay file: ", replay_time[-1])
             GameLogic.Object['nreplay'] = 0
 
     if settings.gratings:
