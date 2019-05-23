@@ -9,6 +9,8 @@ import arduino_serial
 import serial
 import xinput
 import random
+import copy
+
 from PIL import Image
 
 import gnoomcomm as gc
@@ -25,12 +27,22 @@ if settings.cues:
 
 
 def init():
+    scene = GameLogic.getCurrentScene()
     if settings.looming:
-        scene = GameLogic.getCurrentScene()
         scene.replace("Looming")
     
     GameLogic.Object = {}
     print("BLENDER: GameLogic object created")
+
+    # Store visibility / position / scale of all objects
+    for object in scene.objects:
+        viskey = object.name + "_default_visible"
+        GameLogic.Object[viskey] = copy.deepcopy(object.visible)
+        poskey = object.name + "_default_position"
+        GameLogic.Object[poskey] = copy.deepcopy(object.localPosition)
+        scalekey = object.name + "_default_scale"
+        GameLogic.Object[scalekey] = copy.deepcopy(object.localScale)
+
     GameLogic.Object['closed'] = False
     GameLogic.Object['lapCounter'] = 0
     GameLogic.Object['frameCounter'] = 0
@@ -370,6 +382,6 @@ def init():
     GameLogic.Object['inj_amp'] = 50
     GameLogic.Object['do_tbs1'] = False
     GameLogic.Object['do_tbs2'] = False
-    
+
     gu.zeroPos()
     gc.zeroPump()
