@@ -38,6 +38,9 @@ if settings.gratings:
 if settings.cues:
     import chooseCues
     import cues
+if settings.replay_track is not None:
+    sys.path.append(os.path.expanduser("~/../cs/py2p/tools"))
+    import syncfiles
 
 if sys.version_info >= (3,):
     import mathutils as mu
@@ -509,12 +512,16 @@ def move_player(move):
             GameLogic.Object['nreplay_rewards'] += 1
             gc.runPump(GameLogic.Object['pumppy'], reward=True, buzz=settings.reward_buzz)
             gio.write_reward(currentpos[1], True)
+
         newposx = GameLogic.Object['replay_pos'][0][GameLogic.Object['nreplay']]
         newposy = GameLogic.Object['replay_pos'][1][GameLogic.Object['nreplay']]
         newposz = GameLogic.Object['replay_pos'][2][GameLogic.Object['nreplay']]
         GameLogic.Object['nreplay'] += 1
         xtranslate = newposx-currentpos[0]
         ytranslate = newposy-currentpos[1]
+        if settings.gratings:
+            if ytranslate < syncfiles.TELEPORT_DETECT:
+                chooseWalls.randomWalls(settings.proba_env1)
         zrotate = 0
         own.localPosition = [newposx, newposy, newposz]
         # print(own.localPosition)
