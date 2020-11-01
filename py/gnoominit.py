@@ -204,6 +204,8 @@ def init():
     GameLogic.Object['loomunlocked'] = False
     GameLogic.Object['playThisLoom'] = False
     GameLogic.Object['lapCounter'] = 0
+    GameLogic.Object['isRotating'] = False
+    GameLogic.Object['lapRotated'] = False
 
     blenderpath = GameLogic.expandPath('//')
     
