@@ -500,14 +500,25 @@ def collision():
                 if not GameLogic.Object['lapRotated'] and not GameLogic.Object['isRotating']:
                     GameLogic.Object['isRotating'] = True
                     GameLogic.Object['nframes_rotation'] = 0
-                
-            if ypos < settings.startPos:
+            elif ypos < settings.startPos:
                 # Make sure that we are on an inbound lap:
                 if GameLogic.Object['lapRotated'] and not GameLogic.Object['isRotating']:
                     GameLogic.Object['isRotating'] = True
                     GameLogic.Object['nframes_rotation'] = 0
 
             if GameLogic.Object['isRotating']:
+                if GameLogic.Object['nframes_rotation'] == 0:
+                    tracked_speed = np.median(
+                        np.abs(GameLogic.Object['speed_tracker'][-10:]))*1e2 * GameLogic.getLogicTicRate()
+                    if tracked_speed != 0:
+                        rotation_scale = settings.rotate_speed_scale / tracked_speed
+                    else:
+                        rotation_scale = settings.rotate_max_scale
+                    if rotation_scale < settings.rotate_min_scale:
+                        rotation_scale = settings.rotate_min_scale
+                    if rotation_scale > settings.rotate_max_scale:
+                        rotation_scale = settings.rotate_max_scale
+                    GameLogic.Object['rotate_nframes_scaled'] = settings.rotate_nframes * rotation_scale
                 # Freeze position while rotating:
                 if GameLogic.Object['lapRotated']:
                     # Inbound lap (returning home), at start position
@@ -515,7 +526,7 @@ def collision():
                 else:
                     # Outbound lap, at opposite end of corridor
                     own.localPosition = (0, settings.teleport_trigger_pos-2, 0) 
-                if GameLogic.Object['nframes_rotation'] >= settings.rotate_nframes:
+                if GameLogic.Object['nframes_rotation'] >= GameLogic.Object['rotate_nframes_scaled']:
                     # End of rotation
                     GameLogic.Object['isRotating'] = False
                     GameLogic.Object['lapRotated'] = not GameLogic.Object['lapRotated']
@@ -528,12 +539,13 @@ def collision():
                     zeroPos()
                     return
                 else:
+                    # Rotation
                     GameLogic.Object['nframes_rotation'] += 1
                     currentOrientation = own.localOrientation.to_euler()
                     own.localOrientation = mu.Euler((
                         currentOrientation[0],
                         currentOrientation[1],
-                        (currentOrientation[2]+np.pi/settings.rotate_nframes))).to_matrix()
+                        (currentOrientation[2]+np.pi/GameLogic.Object['rotate_nframes_scaled']))).to_matrix()
                     return
     else:
         if np.fabs(xpos) > GameLogic.Object['boundx']:
