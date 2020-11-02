@@ -284,55 +284,20 @@ def zeroPos():
         euler = euler.to_matrix()
     else:
         euler = mu.Euler(0, 0, 0)
-    own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
+    if not settings.rotate_player:
+        own.localOrientation = euler # [[0,0,0],[0,0,0],[0,0,0]]
 
     # Romain : randomly change wall gratings
     if settings.gratings:
         chooseWalls.randomWalls(settings.proba_env1)
-    
-    # CSH 2020-10-31: Rotate player
-    if not init and settings.rotate_player:
-        print("Rotating environment")
-        if not "originalOrientations" in GameLogic.Object.keys():
-            GameLogic.Object["rotated"] = False
-            GameLogic.Object["originalOrientations"] = {
-                object.name: copy.deepcopy(object.localOrientation)
-                for object in scene.objects}
-            GameLogic.Object["originalPositions"] = {
-                object.name: copy.deepcopy(object.localPosition)
-                for object in scene.objects}
-               
-        # iterate over all objects:
-        midpointY = (settings.teleport_trigger_pos-settings.startPos)/2.0
-        for object in scene.objects:
-            if object.name != playerName and \
-                not 'Leg' in object.name and \
-                not 'Camera' in object.name and \
-                object.parent is None:
-                if not GameLogic.Object["rotated"]:
-                    oldOrientation = GameLogic.Object["originalOrientations"][object.name].to_euler()
-                    newOrientation = mu.Euler((
-                        oldOrientation[0],
-                        oldOrientation[1],
-                        (oldOrientation[2]+np.pi))).to_matrix()
-                    oldPosition = GameLogic.Object["originalPositions"][object.name]
-                    ydistance_midpoint = oldPosition[1]-midpointY
-                    newPosition = [
-                        -oldPosition[0],
-                        midpointY-ydistance_midpoint,
-                        oldPosition[2]]
-                else:
-                    newOrientation = GameLogic.Object["originalOrientations"][object.name]
-                    newPosition = GameLogic.Object["originalPositions"][object.name]
-                object.localPosition = newPosition
-                object.localOrientation = newOrientation
-        GameLogic.Object["rotated"] = not GameLogic.Object["rotated"]
 
     if not settings.looming:
         startOdorCounter()
-        if settings.replay_track is None:
+        if settings.replay_track is None and not settings.rotate_player:
             own.localPosition = [0, settings.startPos, 1.5] # y was +80
-              
+        if init and settings.rotate_player:
+            own.localPosition = [0, settings.startPos, 1.5]
+  
         rew2 = scene.objects[rew2Name]
         rew3 = scene.objects[rew3Name]
 
@@ -527,32 +492,41 @@ def collision():
                 reward_central()
             # else:
             #     GameLogic.Object['RewardTicksCounter'] = None
-        if ypos >= settings.teleport_trigger_pos or \
-            (settings.rotate_player and GameLogic.Object['isRotating']):
-            # CSH 2020-10-30
-            # This is where the teleportation happens in case of reward zones
-            if settings.rotate_player:
+        if ypos >= settings.teleport_trigger_pos and not settings.rotate_player:
+            zeroPos()
+        elif settings.rotate_player:
+            if ypos >= settings.teleport_trigger_pos or ypos < settings.startPos:
                 if not GameLogic.Object['isRotating']:
                     GameLogic.Object['isRotating'] = True
                     GameLogic.Object['nframes_rotation'] = 0
-                GameLogic.Object['nframes_rotation'] += 1
+            if GameLogic.Object['isRotating']:
+                # Freeze position while rotating:
+                if GameLogic.Object['lapRotated']:
+                    # Inbound lap (returning home), at start position
+                    own.localPosition = (0, settings.startPos+2, 0)
+                else:
+                    # Outbound lap, at opposite end of corridor
+                    own.localPosition = (0, settings.teleport_trigger_pos-2, 0) 
                 if GameLogic.Object['nframes_rotation'] >= settings.rotate_nframes:
+                    # End of rotation
                     GameLogic.Object['isRotating'] = False
-                    own.localOrientation = ((0, 0, 0))
                     GameLogic.Object['lapRotated'] = not GameLogic.Object['lapRotated']
                     if GameLogic.Object['lapRotated']:
+                        own.localOrientation = mu.Euler((0, 0, np.pi)).to_matrix()
                         gio.save_event('IN')
                     else:
+                        own.localOrientation = mu.Euler((0, 0, 0)).to_matrix()
                         gio.save_event('OU')
+                    zeroPos()
+                    return
                 else:
+                    GameLogic.Object['nframes_rotation'] += 1
                     currentOrientation = own.localOrientation.to_euler()
                     own.localOrientation = mu.Euler((
                         currentOrientation[0],
                         currentOrientation[1],
                         (currentOrientation[2]+np.pi/settings.rotate_nframes))).to_matrix()
                     return
-
-            zeroPos()
     else:
         if np.fabs(xpos) > GameLogic.Object['boundx']:
             xpos = np.sign(xpos)*GameLogic.Object['boundx']
