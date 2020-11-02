@@ -495,10 +495,18 @@ def collision():
         if ypos >= settings.teleport_trigger_pos and not settings.rotate_player:
             zeroPos()
         elif settings.rotate_player:
-            if ypos >= settings.teleport_trigger_pos or ypos < settings.startPos:
-                if not GameLogic.Object['isRotating']:
+            if ypos >= settings.teleport_trigger_pos:
+                # Make sure that we are on an outbound lap:
+                if not GameLogic.Object['lapRotated'] and not GameLogic.Object['isRotating']:
                     GameLogic.Object['isRotating'] = True
                     GameLogic.Object['nframes_rotation'] = 0
+                
+            if ypos < settings.startPos:
+                # Make sure that we are on an inbound lap:
+                if GameLogic.Object['lapRotated'] and not GameLogic.Object['isRotating']:
+                    GameLogic.Object['isRotating'] = True
+                    GameLogic.Object['nframes_rotation'] = 0
+
             if GameLogic.Object['isRotating']:
                 # Freeze position while rotating:
                 if GameLogic.Object['lapRotated']:
