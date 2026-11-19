@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://bq4qdwgisjuso"]
+
+[ext_resource type="PackedScene" path="res://assets/linear_track_demo.tscn" id="1_track"]
+[ext_resource type="Script" uid="uid://dnk2igvmml5kv" path="res://dome/dome_camera.gd" id="2_camera"]
+
+[sub_resource type="Environment" id="Environment_black"]
+background_mode = 1
+
+[node name="LinearTrackDome" unique_id=1602218973 instance=ExtResource("1_track")]
+serial_port = "/dev/ttyACM0"
+
+[node name="DemoCamera" parent="." index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.035)
+
+[node name="DomeCamera" type="Camera3D" parent="DemoCamera" index="0" unique_id=1806019620 node_paths=PackedStringArray("subviewport")]
+rotation = Vector3(-0.2617994, 0, 0)
+environment = SubResource("Environment_black")
+current = true
+near = 0.001
+far = 15.0
+script = ExtResource("2_camera")
+fovx = 250.0
+clip_near = 0.001
+clip_far = 15.0
+subviewport = NodePath("CubeFaceTemplate")
+
+[node name="CubeFaceTemplate" type="SubViewport" parent="DemoCamera/DomeCamera" index="0" unique_id=349764897]
+size = Vector2i(800, 800)
+render_target_update_mode = 0

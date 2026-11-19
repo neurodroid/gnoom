@@ -1,0 +1,29 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="linear_track.glb" id="1_track"]
+[ext_resource type="Texture2D" path="linear_track_sky.jpg" id="2_panorama"]
+[ext_resource type="Script" path="rotary_track.gd" id="3_encoder"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_track"]
+panorama = ExtResource("2_panorama")
+
+[sub_resource type="Sky" id="Sky_track"]
+sky_material = SubResource("PanoramaSkyMaterial_track")
+
+[sub_resource type="Environment" id="Environment_track"]
+background_mode = 2
+sky = SubResource("Sky_track")
+sky_rotation = Vector3(0, 1.5707963, 0)
+
+[node name="LinearTrackDemo" instance=ExtResource("1_track")]
+script = ExtResource("3_encoder")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_track")
+
+[node name="DemoCamera" type="Camera3D" parent="."]
+position = Vector3(0, 0.05, -0.035)
+keep_aspect = 0
+fov = 108.0
+near = 0.001
+far = 15.0
