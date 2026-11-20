@@ -22,6 +22,8 @@ The project uses GdSerial when its `GdSerialManager` class is available. Install
 
 ## Projector output
 
+The [dome projection references](../docs/dome/README.md) include the dimensioned sketch, optical drawing, earlier settings, and hardware specifications.
+
 The dome scene uses Godot360’s six capture cameras at the moving eye position. It uses the legacy **250° equidistant fisheye**, **Front-Truncated** crop, and `blender/warp/meshwarp.data` from the Blender Game Engine setup. [Blender dome renderer](https://github.com/blender/blender/blob/v2.79b/source/gameengine/Ketsji/KX_Dome.cpp#L1667-L1715)
 
 The standalone window opens with a **1920 × 1080** game area. The game keeps that render resolution as the window size changes. The 16:10 warp occupies a centered **1728 × 1080** area with 96 black pixels at each side at native resolution. The dome camera starts pitched **15° down**. Adjust **Transform → Rotation → X** on `DemoCamera/DomeCamera` to aim it. Negative X angles pitch the view downward.
@@ -42,6 +44,6 @@ Clear **Use Warp Mesh** on `DomeCamera` to view the unwarped front-truncated pro
 | Meshmapper mirror | Radius and depth 0.22, position `(0.00, 0.00, 0.00)` |
 | Meshmapper dome | Radius 0.60, angle 180°, position `(0.00, 0.00, 0.46)` |
 
-The Meshmapper values come from `Screenshot-meshdata.png`. Its projector tilt field leaves the units unspecified. Godot reads the resulting warp table directly. It captures each cube face at 800 × 800 as the starting rendering resolution.
+The Meshmapper values come from the [warp mesh settings screenshot](../docs/dome/Screenshot-meshdata.png). Its projector tilt field leaves the units unspecified. Godot reads the resulting warp table directly. It captures each cube face at 800 × 800 as the starting rendering resolution.
 
 The vendored Godot360 runtime comes from the upstream `master` source under the included MIT license. The camera script omits the optional editor icon annotation. [Godot360 source](https://github.com/Cykyrios/Godot360/tree/master/addons/godot360)
