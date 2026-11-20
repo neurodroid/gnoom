@@ -4,16 +4,23 @@ const WARP_MESH := preload("res://dome/fisheye_warp_mesh.gd")
 const PROJECTOR_SHADER := preload("res://dome/dome_projection.gdshader")
 const GNOME_SCREEN_RESOLUTION := preload("res://dome/gnome_screen_resolution.gd")
 const PROJECTOR_RESOLUTION := Vector2i(1920, 1080)
+const CUT_SPHERE_RADIUS_M := 0.60
 
 @export var use_warp_mesh := true
 @export var warp_mesh_path := "res://../blender/warp/meshwarp.data"
 @export_range(0.5, 4.0, 0.001) var projector_aspect := 1.6
 @export var front_truncated := true
 @export var mirror_horizontal := false
+## Mask the floor and opening of the 600 mm radius dome in sphere-centered fisheye coordinates.
+@export var cut_sphere := false
+## Physical eye offset from the sphere center in meters. +X is right, +Y is up, and -Z points into the dome.
+@export var eye_offset_m := Vector3.ZERO
 
 var _settled_screen := -1
 var _sampled_screen := -1
 var _sampled_position: Vector2i
+var _show_calibration := false
+var _calibration_angles_deg := Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -29,6 +36,13 @@ func _ready() -> void:
 	mat.set_shader_parameter("projector_aspect", projector_aspect)
 	mat.set_shader_parameter("front_truncated", front_truncated)
 	mat.set_shader_parameter("mirror_horizontal", mirror_horizontal)
+	mat.set_shader_parameter("cut_sphere", cut_sphere)
+	if cut_sphere:
+		var eye_offset_in_radii := eye_offset_m / CUT_SPHERE_RADIUS_M
+		if not eye_offset_in_radii.is_finite() or eye_offset_in_radii.length_squared() >= 1.0:
+			push_warning("Eye Offset M must lie inside the 0.60 m dome sphere. Using the sphere center.")
+			eye_offset_in_radii = Vector3.ZERO
+		mat.set_shader_parameter("eye_offset_in_radii", eye_offset_in_radii)
 
 	var calibration: ArrayMesh
 	if use_warp_mesh:
@@ -46,6 +60,42 @@ func _ready() -> void:
 		mat.set_shader_parameter("Texture%d" % i, viewports[i].get_texture())
 	super._process(0.0)
 	_watch_projector_window()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.alt_pressed or key.ctrl_pressed or key.meta_pressed:
+		return
+
+	if key.keycode == KEY_C:
+		_show_calibration = not _show_calibration
+		mat.set_shader_parameter("calibration_target", _show_calibration)
+	elif _show_calibration:
+		var step := 1 if key.shift_pressed else 5
+		match key.keycode:
+			KEY_A:
+				_calibration_angles_deg.x -= step
+			KEY_D:
+				_calibration_angles_deg.x += step
+			KEY_W:
+				_calibration_angles_deg.y += step
+			KEY_S:
+				_calibration_angles_deg.y -= step
+			KEY_R:
+				_calibration_angles_deg = Vector2i.ZERO
+			_:
+				return
+	else:
+		return
+
+	if _show_calibration:
+		_calibration_angles_deg.x = wrapi(_calibration_angles_deg.x, -180, 180)
+		_calibration_angles_deg.y = clampi(_calibration_angles_deg.y, -89, 89)
+		mat.set_shader_parameter("calibration_angles_deg", Vector2(_calibration_angles_deg))
+		print("Dome target: azimuth %+d°, elevation %+d°" % [_calibration_angles_deg.x, _calibration_angles_deg.y])
+	get_viewport().set_input_as_handled()
 
 
 func _watch_projector_window() -> void:

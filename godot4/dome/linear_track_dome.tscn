@@ -13,12 +13,15 @@ serial_port = "/dev/ttyACM0"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.035)
 
 [node name="DomeCamera" type="Camera3D" parent="DemoCamera" index="0" unique_id=1806019620 node_paths=PackedStringArray("subviewport")]
-rotation = Vector3(-0.2617994, 0, 0)
 environment = SubResource("Environment_black")
 current = true
 near = 0.001
 far = 15.0
 script = ExtResource("2_camera")
+use_warp_mesh = false
+warp_mesh_path = ""
+front_truncated = false
+cut_sphere = true
 fovx = 250.0
 clip_near = 0.001
 clip_far = 15.0

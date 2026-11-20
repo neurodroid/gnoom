@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Gnoom Linear Track"
-run/main_scene="res://dome/linear_track_dome.tscn"
+run/main_scene="res://dome/linear_track_dome_calibration.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]

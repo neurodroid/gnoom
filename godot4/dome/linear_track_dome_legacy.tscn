@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://dome/linear_track_dome.tscn" id="1_dome"]
+
+[node name="LinearTrackDomeLegacy" instance=ExtResource("1_dome")]
+
+[node name="DomeCamera" parent="DemoCamera" index="0"]
+rotation = Vector3(-0.2617994, 0, 0)
+use_warp_mesh = true
+warp_mesh_path = "res://../blender/warp/meshwarp.data"
+front_truncated = true
+cut_sphere = false

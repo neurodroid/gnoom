@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://dome/linear_track_dome.tscn" id="1_dome"]
+
+[node name="LinearTrackDomeCalibration" instance=ExtResource("1_dome")]
+
+[node name="DomeCamera" parent="DemoCamera" index="0"]
+use_warp_mesh = true
+warp_mesh_path = "res://dome/optoma_zh507plus_seton_ddome4.data"
+projector_aspect = 1.777777777777778
