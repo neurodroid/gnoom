@@ -8,13 +8,15 @@ Follow the [Ubuntu 26.04 installation and launch steps](../README.md#install-on-
 2. In `dome/linear_track_dome_calibration.tscn`, select `LinearTrackDomeCalibration` and set **Serial Port** to the Arduino’s device path. On Linux this might be `/dev/ttyACM0`, `/dev/ttyUSB0`, or a stable link under `/dev/serial/by-id/`.
 3. Run with **F5**. Godot retries the selected port every second while it is unavailable. The Godot console reports the connection state. Clear **Serial Port** for a keyboard-only run.
 
-After the first editor import, you can also launch from the repository root and select the port for that run with `GNOOM_SERIAL_PORT`.
+You can also launch from the repository root and select the port for that run with `GNOOM_SERIAL_PORT`.
 
 ```sh
-GNOOM_SERIAL_PORT=/dev/ttyACM0 mise exec godot@4.7.2-stable -- godot --path godot4
+GNOOM_SERIAL_PORT=/dev/ttyACM0 ./run-godot.sh
 ```
 
 The sketch sends a raw byte at 115200 baud on each change of channel A. By default `0x01` advances the camera and `0x00` moves it backward. Turn on **Invert Encoder** if movement is reversed. **Meters Per Step** starts at `0.0001` for the demo. For physical calibration, divide the wheel circumference in meters by the number of emitted steps per wheel revolution, then multiply by the desired virtual travel gain.
+
+To check incoming data, close any serial monitor and launch with `GNOOM_SERIAL_DEBUG=1 ./run-godot.sh`. Turn the encoder both ways. The console reports counts for `0x01`, `0x00`, and other bytes, plus a hexadecimal sample and the track position. The connection message confirms the port opened. The data report starts when bytes arrive.
 
 If Ubuntu reports **Permission denied** and the serial device belongs to the `dialout` group, run `sudo usermod -aG dialout "$USER"`, then sign out and back in before restarting Godot. [Arduino serial port permissions](https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux)
 

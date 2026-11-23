@@ -3,6 +3,8 @@ extends Node3D
 const BAUD_RATE := 115200
 const RETRY_SECONDS := 1.0
 const READ_LIMIT := 4096
+const SERIAL_DEBUG_INTERVAL_MS := 1000
+const SERIAL_DEBUG_SAMPLE_SIZE := 12
 const KEYBOARD_SPEED := 0.4 # Meters per second.
 const TRACK_END_TOLERANCE := 1.0e-7 # Meters, for rounding in the 3D marker positions.
 
@@ -21,6 +23,10 @@ var _distance: float
 var _port: String
 var _retry_in := 0.0
 var _last_status := ""
+var _serial_debug := false
+var _serial_debug_counts := Vector3i.ZERO
+var _serial_debug_sample := PackedByteArray()
+var _serial_debug_next_report_ms := 0
 
 var _manager: Object
 var _native_open := false
@@ -49,6 +55,7 @@ func _ready() -> void:
 		push_error("Encoder motion requires a positive meters_per_step.")
 		_port = ""
 		return
+	_serial_debug = OS.get_environment("GNOOM_SERIAL_DEBUG") == "1"
 
 	# Resolve the optional extension at runtime so the scene opens without it.
 	if ClassDB.class_exists(&"GdSerialManager"):
@@ -84,6 +91,8 @@ func _process(delta: float) -> void:
 		_retry_in -= delta
 		if _retry_in <= 0.0:
 			_connect_serial()
+	if _serial_debug:
+		_report_serial_data()
 
 
 func _connect_serial() -> void:
@@ -106,15 +115,17 @@ func _connect_serial() -> void:
 
 func _poll_bridge() -> void:
 	var running := OS.is_process_running(_bridge["pid"])
-	var bytes := _read_available(_bridge["stdio"])
+	var stdout: FileAccess = _bridge["stdio"]
+	var stderr: FileAccess = _bridge["stderr"]
+	var bytes := _read_available(stdout)
 	if not bytes.is_empty():
 		_apply_steps(bytes)
-	var message := _read_available(_bridge["stderr"]).get_string_from_utf8().strip_edges()
+	var message := _read_available(stderr).get_string_from_utf8().strip_edges()
 	if message == "READY":
 		_report("Connected to %s via the Linux serial reader." % _port)
 	elif not message.is_empty():
 		_report(message)
-	if not running:
+	if not running and stdout.get_length() == 0 and stderr.get_length() == 0:
 		_bridge.clear()
 		_retry_in = RETRY_SECONDS
 
@@ -135,6 +146,13 @@ func _on_serial_disconnect(port: String) -> void:
 
 
 func _apply_steps(bytes: PackedByteArray) -> void:
+	if _serial_debug and not bytes.is_empty():
+		var ones := bytes.count(1)
+		var zeros := bytes.count(0)
+		_serial_debug_counts += Vector3i(ones, zeros, bytes.size() - ones - zeros)
+		if _serial_debug_sample.is_empty():
+			_serial_debug_sample = bytes.slice(0, SERIAL_DEBUG_SAMPLE_SIZE)
+
 	var step := -meters_per_step if invert_encoder else meters_per_step
 	for value in bytes:
 		match value:
@@ -143,6 +161,21 @@ func _apply_steps(bytes: PackedByteArray) -> void:
 			1:
 				_advance(step)
 	_update_camera_position()
+
+
+func _report_serial_data() -> void:
+	if _serial_debug_sample.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	if now < _serial_debug_next_report_ms:
+		return
+	print("Encoder data on %s: 0x01=%d, 0x00=%d, other=%d, sample=%s, track=%.4f m" % [
+		_port, _serial_debug_counts.x, _serial_debug_counts.y, _serial_debug_counts.z,
+		_serial_debug_sample.hex_encode(), _distance,
+	])
+	_serial_debug_counts = Vector3i.ZERO
+	_serial_debug_sample.clear()
+	_serial_debug_next_report_ms = now + SERIAL_DEBUG_INTERVAL_MS
 
 
 func _advance(meters: float) -> void:

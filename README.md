@@ -23,20 +23,19 @@ mise exec godot@4.7.2-stable -- godot --version
 
 ## Run the demo
 
-From the repository root, launch the Godot editor with the demo project.
+From the repository root, run the launcher to start the linear-track demo. It imports the project assets on a fresh checkout and passes any extra arguments to Godot.
 
 ```sh
-mise exec godot@4.7.2-stable -- godot --editor --path godot4
+./run-godot.sh
 ```
 
-Let the editor finish importing the assets, then press **F5** to run the dome demo with the Optoma and Seton starting warp. For projector use, turn off **Embed Game on Next Play** in the **Game** toolbar menu before pressing **F5**. The standalone game renders at 1920 × 1080 and switches to fullscreen when moved onto a 1080p display. [Godot game embedding](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html) · [Projector output](godot4/README.md#projector-output)
-
-To launch from the terminal, run the import command once on a fresh checkout, then start the game.
+To open the project in the Godot editor, pass `--editor`.
 
 ```sh
-mise exec godot@4.7.2-stable -- godot --headless --path godot4 --import
-mise exec godot@4.7.2-stable -- godot --path godot4
+./run-godot.sh --editor
 ```
+
+In the editor, press **F5** to run the dome demo with the Optoma and Seton starting warp. For projector use, turn off **Embed Game on Next Play** in the **Game** toolbar menu before pressing **F5**. The standalone game renders at 1920 × 1080 and switches to fullscreen when moved onto a 1080p display. [Godot game embedding](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html) · [Projector output](godot4/README.md#projector-output)
 
 Use **↑** and **↓** to test movement without connecting an Arduino. For the unwarped preview, open `godot4/dome/linear_track_dome.tscn` and press **F6**. [Optoma and Seton starting calibration](godot4/README.md#optoma-and-seton-starting-calibration) · [Legacy projection](godot4/README.md#legacy-front-truncated-projection)
 
