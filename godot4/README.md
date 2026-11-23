@@ -6,6 +6,8 @@ In the dome scene, tap **Ctrl+↑** to pitch the camera up or **Ctrl+↓** to pi
 
 ## Arduino rotary encoder
 
+The installed US Digital E6 uses a five-pin, single-ended 5 V interface. [Encoder part number, wiring and calibration](../docs/encoder/README.md)
+
 1. Open [`arduino/rotary/rotary.ino`](../arduino/rotary/rotary.ino) in the Arduino IDE and upload the sketch. Keep `rotary_only.ino` in the same folder as the main sketch. The firmware reads channel A on D2 and channel B on D7.
 2. In `dome/linear_track_dome_calibration.tscn`, select `LinearTrackDomeCalibration` and set **Serial Port** to the Arduino’s device path. On Linux this might be `/dev/ttyACM0`, `/dev/ttyUSB0`, or a stable link under `/dev/serial/by-id/`.
 3. Run with **F5**. Godot retries the selected port every second while it is unavailable. The Godot console reports the connection state. Clear **Serial Port** for a keyboard-only run.
@@ -16,7 +18,7 @@ You can also launch from the repository root and select the port for that run wi
 GNOOM_SERIAL_PORT=/dev/ttyACM0 ./run-godot.sh
 ```
 
-The sketch sends a raw byte at 115200 baud on each change of channel A. By default `0x01` advances the camera and `0x00` moves it backward. Turn on **Invert Encoder** if movement is reversed. **Meters Per Step** starts at `0.0001` for the demo. For physical calibration, divide the wheel circumference in meters by the number of emitted steps per wheel revolution, then multiply by the desired virtual travel gain.
+The sketch sends a raw byte at 115200 baud on each change of channel A. By default `0x01` advances the camera and `0x00` moves it backward. Turn on **Invert Encoder** if movement is reversed. With the E6, the sketch sends 5,000 step bytes per encoder revolution, so the demo's **Meters Per Step** setting of `0.0001` gives 0.50 m of virtual travel per encoder revolution. [Set the gain from measured physical travel](../docs/encoder/README.md#set-the-virtual-travel-gain)
 
 To check incoming data, close any serial monitor and launch with `GNOOM_SERIAL_DEBUG=1 ./run-godot.sh`. Turn the encoder both ways. The console reports counts for `0x01`, `0x00`, and other bytes, plus a hexadecimal sample and the track position. The connection message confirms the port opened. The data report starts when bytes arrive.
 
