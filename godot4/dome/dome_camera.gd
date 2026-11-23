@@ -66,7 +66,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
-	if key.alt_pressed or key.ctrl_pressed or key.meta_pressed:
+	if key.alt_pressed or key.meta_pressed:
+		return
+	if key.ctrl_pressed:
+		if key.shift_pressed or (key.keycode != KEY_UP and key.keycode != KEY_DOWN):
+			return
+		var pitch_step := 1.0 if key.keycode == KEY_UP else -1.0
+		rotation_degrees.x = clampf(rotation_degrees.x + pitch_step, -89.0, 89.0)
+		print("Camera pitch: %+.1f°" % rotation_degrees.x)
+		get_viewport().set_input_as_handled()
 		return
 
 	if key.keycode == KEY_C:

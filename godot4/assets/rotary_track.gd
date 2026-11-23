@@ -70,8 +70,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var direction := Input.get_axis(&"ui_down", &"ui_up")
-	if direction != 0.0:
+	var direction := Input.get_action_strength(&"ui_up", true) - Input.get_action_strength(&"ui_down", true)
+	if direction != 0.0 and not Input.is_key_pressed(KEY_CTRL):
 		_advance(direction * KEYBOARD_SPEED * delta)
 		_update_camera_position()
 	if _port.is_empty():

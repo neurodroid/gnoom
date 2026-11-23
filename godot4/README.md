@@ -2,6 +2,8 @@
 
 Follow the [Ubuntu 26.04 installation and launch steps](../README.md#install-on-ubuntu-2604-lts) to open the project in Godot 4.7.2. Press **F5** to run the dome scene with the Optoma and Seton starting warp. With the game focused, hold **↑** to move forward or **↓** to move backward. Reaching `TrackEnd` returns the camera to `TrackStart`. Reverse travel stops at `TrackStart`.
 
+In the dome scene, tap **Ctrl+↑** to pitch the camera up or **Ctrl+↓** to pitch it down in 1° steps. The Godot console reports the current pitch. Each run starts at the angle saved in the scene.
+
 ## Arduino rotary encoder
 
 1. Open [`arduino/rotary/rotary.ino`](../arduino/rotary/rotary.ino) in the Arduino IDE and upload the sketch. Keep `rotary_only.ino` in the same folder as the main sketch. The firmware reads channel A on D2 and channel B on D7.
