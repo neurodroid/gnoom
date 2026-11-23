@@ -1,5 +1,9 @@
 # Gnoom
 
+<p align="left">
+  <img src="docs/branding/gnoom-logo.png" alt="Gnoom" width="520">
+</p>
+
 Gnoom is a collection of GNU/Linux tools for rodent virtual reality research. The current linear-track demo runs in **Godot 4** and uses the bundled Godot360 code for spherical dome projection. The track has patterned walls, colored landmarks, and keyboard or Arduino rotary encoder control. [Godot project](godot4/project.godot) · [Dome and encoder setup](godot4/README.md)
 
 ## Install on Ubuntu 26.04 LTS
