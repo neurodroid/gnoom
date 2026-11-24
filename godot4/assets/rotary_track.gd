@@ -35,6 +35,7 @@ var _bridge: Dictionary = {}
 
 
 func _ready() -> void:
+	_prepare_wall_textures()
 	_track_start = to_local(_start.global_position)
 	var segment := to_local(_finish.global_position) - _track_start
 	_track_length = segment.length()
@@ -67,6 +68,29 @@ func _ready() -> void:
 		_port = ""
 		return
 	_connect_serial()
+
+
+func _prepare_wall_textures() -> void:
+	var prepared: Array[BaseMaterial3D] = []
+	for node in $LinearTrack.find_children("Wall*", "MeshInstance3D", false):
+		var wall := node as MeshInstance3D
+		for surface in range(wall.get_surface_override_material_count()):
+			var material := wall.get_active_material(surface) as BaseMaterial3D
+			if material == null or material in prepared:
+				continue
+			var texture := material.albedo_texture as ImageTexture
+			if texture == null:
+				continue
+			prepared.append(material)
+			var image := texture.get_image()
+			if image == null or image.is_empty():
+				continue
+			# Uncompressed textures embedded in the GLB arrive without mipmaps.
+			if not image.has_mipmaps():
+				if image.generate_mipmaps() != OK:
+					continue
+				material.albedo_texture = ImageTexture.create_from_image(image)
+			material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 
 func _process(delta: float) -> void:
