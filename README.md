@@ -27,7 +27,7 @@ mise exec godot@4.7.2-stable -- godot --version
 
 ## Run the demo
 
-From the repository root, run the launcher to start the linear-track demo. It imports the project assets on a fresh checkout and passes any extra arguments to Godot.
+From the repository root, run the launcher to start the linear-track demo. It imports the project assets on a fresh checkout or when either the S3TC or ETC2 sky texture is missing from the cache. It passes any extra arguments to Godot.
 
 ```sh
 ./run-godot.sh
