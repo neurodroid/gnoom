@@ -31,6 +31,14 @@ scene={
 "gltf/embedded_image_handling": 3
 }
 
+[input]
+
+quit_game={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"keycode":81)
+]
+}
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

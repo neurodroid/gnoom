@@ -41,7 +41,7 @@ To open the project in the Godot editor, pass `--editor`.
 
 In the editor, press **F5** to run the dome demo with the Optoma and Seton starting warp. For projector use, turn off **Embed Game on Next Play** in the **Game** toolbar menu before pressing **F5**. The standalone game renders at 1920 × 1080 and switches to fullscreen when moved onto a 1080p display. [Godot game embedding](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html) · [Projector output](godot4/README.md#projector-output)
 
-Use **↑** and **↓** to test movement without connecting an Arduino. For the unwarped preview, open `godot4/dome/linear_track_dome.tscn` and press **F6**. [Optoma and Seton starting calibration](godot4/README.md#optoma-and-seton-starting-calibration) · [Legacy projection](godot4/README.md#legacy-front-truncated-projection)
+Use **↑** and **↓** to test movement without connecting an Arduino. Press **Q** while the game has focus to quit. For the unwarped preview, open `godot4/dome/linear_track_dome.tscn` and press **F6**. [Optoma and Seton starting calibration](godot4/README.md#optoma-and-seton-starting-calibration) · [Legacy projection](godot4/README.md#legacy-front-truncated-projection)
 
 ## Blender Game Engine and research background
 
