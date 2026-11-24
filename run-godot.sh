@@ -9,6 +9,44 @@ project_dir="$repo_dir/godot4"
 cache_dir="$project_dir/.godot"
 sky_import="$project_dir/assets/linear_track_sky.jpg.import"
 
+# Keep Godot arguments in order, including its user arguments after -- or ++.
+argument_mode=options
+unset renderer
+for argument do
+    shift
+    case "$argument_mode:$argument" in
+        value:*)
+            renderer=$argument
+            argument_mode=options
+            ;;
+        options:--renderer)
+            renderer=
+            argument_mode=value
+            ;;
+        options:--renderer=*)
+            renderer=${argument#*=}
+            ;;
+        options:--|options:++)
+            argument_mode=passthrough
+            set -- "$@" "$argument"
+            ;;
+        *)
+            set -- "$@" "$argument"
+            ;;
+    esac
+done
+
+if [ "${renderer+x}" ]; then
+    case "$renderer" in
+        opengl) set -- --rendering-method gl_compatibility --rendering-driver opengl3 "$@" ;;
+        vulkan) set -- --rendering-method forward_plus --rendering-driver vulkan "$@" ;;
+        *)
+            printf '%s\n' '--renderer requires opengl or vulkan.' >&2
+            exit 2
+            ;;
+    esac
+fi
+
 sky_cache_ready() {
     [ -f "$sky_import" ] || return 1
     for format in s3tc etc2; do

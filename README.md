@@ -33,6 +33,12 @@ From the repository root, run the launcher to start the linear-track demo. It im
 ./run-godot.sh
 ```
 
+The launcher uses OpenGL by default. To use Vulkan with Godot’s Forward+ renderer, pass `--renderer vulkan`. Use `--renderer opengl` to select OpenGL explicitly.
+
+```sh
+./run-godot.sh --renderer vulkan
+```
+
 To open the project in the Godot editor, pass `--editor`.
 
 ```sh
